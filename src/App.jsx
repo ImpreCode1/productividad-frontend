@@ -1,11 +1,6 @@
-import './App.css'
+import AppRouter from "./router";
 
 function App() {
-  return (
-    <div>
-      <h1>Plataforma de Productividad</h1>
-    </div>
-  )
+  return <AppRouter />;
 }
-
 export default App
