@@ -26,9 +26,7 @@ export function validateHydraToken(token) {
         id: decoded.sub,
         email: decoded.email,
         name: decoded.name,
-        roles: decoded.roles || [],
         positionId: decoded.positionId,
-        platform: decoded.platform,
       },
     };
   } catch (error) {

@@ -1,5 +1,8 @@
 import api from "./client";
 
+export const fetchCurrentUser = () =>
+  api.get("/users/me").then((res) => res.data);
+
 export const fetchUsers = () =>
   api.get("/users").then((res) => res.data.users);
 
@@ -17,3 +20,9 @@ export const assignUserLeader = (userId, leaderId) =>
 
 export const changeUserPosition = (userId, positionId) =>
   api.patch(`/users/${userId}/position`, { position_id: positionId }).then((res) => res.data);
+
+export const createRole = (data) =>
+  api.post("/roles", data).then((res) => res.data);
+
+export const fetchRoles = () =>
+  api.get("/roles").then((res) => res.data.roles || res.data);

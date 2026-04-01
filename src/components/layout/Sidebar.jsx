@@ -4,6 +4,7 @@ import { useAuth } from "../../hooks/useAuth";
 const menuItems = [
   { path: "/", label: "Dashboard", icon: "📊", roles: ["ADMIN", "LEADER", "EMPLOYEE"] },
   { path: "/tracking", label: "Seguimiento", icon: "📈", roles: ["ADMIN", "LEADER", "EMPLOYEE"] },
+  { path: "/team-review", label: "Revisar Equipo", icon: "✅", roles: ["ADMIN", "LEADER"] },
   { path: "/indicators", label: "Indicadores", icon: "📋", roles: ["ADMIN"] },
   { path: "/positions", label: "Cargos", icon: "💼", roles: ["ADMIN"] },
   { path: "/organization", label: "Organización", icon: "🏢", roles: ["ADMIN"] },
@@ -12,11 +13,12 @@ const menuItems = [
 
 export default function Sidebar() {
   const location = useLocation();
-  const { hasRole } = useAuth();
+  const { hasRole, user } = useAuth();
 
-  const visibleItems = menuItems.filter((item) =>
-    item.roles.some((role) => hasRole(role))
-  );
+  const visibleItems = menuItems.filter((item) => {
+    if (!user?.roles || user.roles.length === 0) return true;
+    return item.roles.some((role) => hasRole(role));
+  });
 
   return (
     <aside className="w-64 bg-gray-900 text-white min-h-screen p-4">

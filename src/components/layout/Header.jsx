@@ -10,7 +10,10 @@ export default function Header() {
           Plataforma de Productividad
         </h2>
         <div className="flex items-center gap-4">
-          <span className="text-sm text-gray-600">{user?.name || "Usuario"}</span>
+          <span className="text-sm text-gray-600">
+            {user?.name || "Usuario"} 
+            ({user?.roles?.join(", ") || "sin roles"})
+          </span>
           <button
             onClick={logout}
             className="text-sm text-red-600 hover:text-red-800"

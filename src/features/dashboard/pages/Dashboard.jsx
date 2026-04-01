@@ -1,15 +1,12 @@
 import { useQuery } from "@tanstack/react-query";
 import { fetchUserDashboard } from "../../../api/dashboard.api";
-import { useAuth } from "../../../hooks/useAuth";
 
 export default function Dashboard() {
-  const { user } = useAuth();
   const currentMonth = new Date().getMonth() + 1;
 
   const { data, isLoading, error } = useQuery({
-    queryKey: ["dashboard", user?.id, currentMonth],
-    queryFn: () => fetchUserDashboard(user.id, currentMonth),
-    enabled: !!user?.id,
+    queryKey: ["dashboard", currentMonth],
+    queryFn: () => fetchUserDashboard(currentMonth),
   });
 
   if (isLoading) {
@@ -23,7 +20,7 @@ export default function Dashboard() {
   if (error) {
     return (
       <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded-lg">
-        Error al cargar el dashboard
+        Error al cargar el dashboard: {error.message}
       </div>
     );
   }
@@ -51,12 +48,45 @@ export default function Dashboard() {
           </p>
         </div>
       </div>
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-        <h2 className="text-lg font-semibold mb-4">Resumen del Mes</h2>
-        <pre className="bg-gray-50 p-4 rounded text-sm overflow-auto">
-          {JSON.stringify(data, null, 2)}
-        </pre>
-      </div>
+      {data?.by_indicator && data.by_indicator.length > 0 && (
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <h2 className="text-lg font-semibold mb-4">Tus Indicadores</h2>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-gray-200">
+                  <th className="text-left py-2 px-3">Indicador</th>
+                  <th className="text-right py-2 px-3">Cumplimiento</th>
+                  <th className="text-center py-2 px-3">Estado</th>
+                </tr>
+              </thead>
+              <tbody>
+                {data.by_indicator.map((ind, idx) => (
+                  <tr key={idx} className="border-b border-gray-100">
+                    <td className="py-2 px-3">{ind.name}</td>
+                    <td className="text-right py-2 px-3">
+                      <span className={`px-2 py-1 rounded text-xs ${
+                        ind.compliance >= 80 ? 'bg-green-100 text-green-700' :
+                        ind.compliance >= 50 ? 'bg-yellow-100 text-yellow-700' :
+                        'bg-red-100 text-red-700'
+                      }`}>
+                        {ind.compliance}%
+                      </span>
+                    </td>
+                    <td className="text-center py-2 px-3">
+                      <span className={`w-3 h-3 inline-block rounded-full ${
+                        ind.status === 'green' ? 'bg-green-500' :
+                        ind.status === 'yellow' ? 'bg-yellow-500' :
+                        'bg-red-500'
+                      }`} />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

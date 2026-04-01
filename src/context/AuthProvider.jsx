@@ -1,5 +1,6 @@
 import { createContext, useState } from "react";
 import { setHydraCookie, clearHydraCookie } from "../api/client";
+import { fetchCurrentUser } from "../api/user.api";
 
 export const AuthContext = createContext(null);
 
@@ -16,14 +17,27 @@ export function AuthProvider({ children }) {
     }
   });
 
-  const login = (userData, token) => {
+  const login = async (userData, token) => {
     if (token) {
       setHydraCookie(token);
       sessionStorage.setItem("hydra_token", token);
     }
-    const sessionData = { ...userData };
-    sessionStorage.setItem(SESSION_KEY, JSON.stringify(sessionData));
-    setUser(sessionData);
+    
+    try {
+      const backendUser = await fetchCurrentUser();
+      const userWithRoles = {
+        id: backendUser.id,
+        name: backendUser.name,
+        email: backendUser.email,
+        positionId: backendUser.position_id,
+        roles: backendUser.roles || [],
+      };
+      sessionStorage.setItem(SESSION_KEY, JSON.stringify(userWithRoles));
+      setUser(userWithRoles);
+    } catch (e) {
+      sessionStorage.setItem(SESSION_KEY, JSON.stringify(userData));
+      setUser(userData);
+    }
   };
 
   const logout = () => {
