@@ -1,22 +1,16 @@
 import api from "./client";
 
-export const fetchEvidences = () =>
-  api.get("/evidences").then((res) => res.data);
+export const uploadEvidence = (trackingId, file) => {
+  const formData = new FormData();
+  formData.append("file", file);
 
-export const fetchMyEvidences = () =>
-  api.get("/evidences/my-evidences").then((res) => res.data);
+  return api.post(`/evidence/${trackingId}`, formData, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
+};
 
-export const fetchTeamEvidences = () =>
-  api.get("/evidences/team-evidences").then((res) => res.data);
+export const getEvidence = (trackingId) =>
+  api.get(`/evidence/${trackingId}`);
 
-export const fetchEvidence = (evidenceId) =>
-  api.get(`/evidences/${evidenceId}`).then((res) => res.data);
-
-export const createEvidence = (data) =>
-  api.post("/evidences", data).then((res) => res.data);
-
-export const reviewEvidence = (evidenceId, status) =>
-  api.patch(`/evidences/${evidenceId}/review`, { status }).then((res) => res.data);
-
-export const deleteEvidence = (evidenceId) =>
-  api.delete(`/evidences/${evidenceId}`).then((res) => res.data);
+export const deleteEvidence = (id) =>
+  api.delete(`/evidence/${id}`);

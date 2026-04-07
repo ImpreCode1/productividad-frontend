@@ -3,19 +3,17 @@ import { useAuth } from "../../hooks/useAuth";
 import {
   LayoutDashboard,
   LineChart,
-  CheckSquare,
-  ClipboardList,
-  Briefcase,
-  Building2,
   Users,
+  Target,
+  UserCog,
 } from "lucide-react";
 
 // -----------------------------
-// CONFIG MENÚ
+// CONFIG MENÚ (NUEVO)
 // -----------------------------
 const menuSections = [
   {
-    title: "Dashboard",
+    title: "General",
     items: [
       {
         path: "/",
@@ -35,33 +33,10 @@ const menuSections = [
         roles: ["ADMIN", "LEADER", "EMPLOYEE"],
       },
       {
-        path: "/team-review",
-        label: "Revisar Equipo",
-        icon: CheckSquare,
-        roles: ["ADMIN", "LEADER"], // 🔥 SOLO líderes y admin
-      },
-    ],
-  },
-  {
-    title: "Configuración",
-    items: [
-      {
-        path: "/indicators",
-        label: "Indicadores",
-        icon: ClipboardList,
-        roles: ["ADMIN"], // 🔥 SOLO admin
-      },
-      {
-        path: "/positions",
-        label: "Cargos / Posiciones",
-        icon: Briefcase,
-        roles: ["ADMIN"],
-      },
-      {
-        path: "/organization",
-        label: "Estructura Organizacional",
-        icon: Building2,
-        roles: ["ADMIN"],
+        path: "/team",
+        label: "Equipo",
+        icon: Users,
+        roles: ["ADMIN", "LEADER"],
       },
     ],
   },
@@ -69,10 +44,16 @@ const menuSections = [
     title: "Administración",
     items: [
       {
+        path: "/assignments",
+        label: "Asignaciones",
+        icon: Target,
+        roles: ["ADMIN"],
+      },
+      {
         path: "/users",
         label: "Usuarios",
-        icon: Users,
-        roles: ["ADMIN"], // 🔥 SOLO admin
+        icon: UserCog,
+        roles: ["ADMIN"],
       },
     ],
   },
@@ -109,12 +90,10 @@ export default function Sidebar() {
 
           return (
             <div key={section.title}>
-              {/* TITLE */}
               <p className="text-xs text-gray-500 uppercase mb-2 px-2">
                 {section.title}
               </p>
 
-              {/* ITEMS */}
               <div className="space-y-1">
                 {visibleItems.map((item) => {
                   const isActive = location.pathname === item.path;

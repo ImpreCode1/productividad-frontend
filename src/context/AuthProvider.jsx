@@ -1,6 +1,6 @@
 import { createContext, useState } from "react";
 import { setHydraCookie, clearHydraCookie } from "../api/client";
-import { fetchCurrentUser } from "../api/user.api";
+import { fetchCurrentUser } from "../api/users.api";
 
 export const AuthContext = createContext(null);
 

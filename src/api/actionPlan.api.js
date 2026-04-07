@@ -1,13 +1,10 @@
 import api from "./client";
 
-export const fetchActionPlans = () =>
-  api.get("/action-plans").then((res) => res.data);
+export const createActionPlan = (trackingId, data) =>
+  api.post(`/action-plan/${trackingId}`, data);
 
-export const fetchActionPlan = (planId) =>
-  api.get(`/action-plans/${planId}`).then((res) => res.data);
+export const getActionPlans = (trackingId) =>
+  api.get(`/action-plan/${trackingId}`);
 
-export const createActionPlan = (data) =>
-  api.post("/action-plans", data).then((res) => res.data);
-
-export const updateActionPlan = (planId, data) =>
-  api.patch(`/action-plans/${planId}`, data).then((res) => res.data);
+export const updateActionPlan = (id, data) =>
+  api.patch(`/action-plan/${id}`, data);
