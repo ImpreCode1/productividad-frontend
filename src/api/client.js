@@ -12,7 +12,7 @@ api.interceptors.request.use((config) => {
   const token = sessionStorage.getItem("hydra_token");
   
   if (token) {
-    config.headers["X-Access-Token"] = token;
+    config.headers["Authorization"] = `Bearer ${token}`;
   }
   
   return config;
