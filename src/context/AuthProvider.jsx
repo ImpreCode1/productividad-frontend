@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { setHydraCookie, clearHydraCookie } from "../api/client";
-import { fetchCurrentUser } from "../api/users.api";
+import { getMe } from "../api/users.api";
 import { AuthContext } from "./AuthContext";
 
 
@@ -17,7 +17,6 @@ export function AuthProvider({ children }) {
     }
   });
 
-  // 🔓 Logout (MOVIDO ARRIBA ✅)
   const logout = () => {
     sessionStorage.removeItem(SESSION_KEY);
     sessionStorage.removeItem("hydra_token");
@@ -30,14 +29,26 @@ export function AuthProvider({ children }) {
     }
   };
 
-  // 🔥 Rehidratación automática
   useEffect(() => {
     const init = async () => {
       const token = sessionStorage.getItem("hydra_token");
       if (!token) return;
 
+      const stored = sessionStorage.getItem(SESSION_KEY);
+      if (stored) {
+        try {
+          const parsed = JSON.parse(stored);
+          if (parsed.id && parsed.name) {
+            setUser(parsed);
+            return;
+          }
+        } catch {
+          // ignore parse errors
+        }
+      }
+
       try {
-        const backendUser = await fetchCurrentUser();
+        const { data: backendUser } = await getMe();
 
         const userWithRoles = {
           id: backendUser.id,
@@ -55,21 +66,19 @@ export function AuthProvider({ children }) {
         setUser(userWithRoles);
       } catch (e) {
         console.error("Error rehidratando sesión:", e);
-        logout(); // ✅ ahora sí válido
       }
     };
 
     init();
   }, []);
 
-  // 🔐 Login
   const login = async (userData, token) => {
     if (token) {
       setHydraCookie(token);
     }
 
     try {
-      const backendUser = await fetchCurrentUser();
+      const { data: backendUser } = await getMe();
 
       const userWithRoles = {
         id: backendUser.id,
@@ -86,13 +95,23 @@ export function AuthProvider({ children }) {
       sessionStorage.setItem(SESSION_KEY, JSON.stringify(userWithRoles));
       setUser(userWithRoles);
     } catch (e) {
-      console.warn("Fallback a userData:", e);
-      sessionStorage.setItem(SESSION_KEY, JSON.stringify(userData));
-      setUser(userData);
+      console.warn("Fallback a userData del token:", e);
+      if (userData) {
+        const fallbackUser = {
+          id: userData.id || userData.sub,
+          name: userData.name,
+          email: userData.email,
+          position: userData.position || null,
+          area: null,
+          subarea: null,
+          roles: userData.roles || [],
+        };
+        sessionStorage.setItem(SESSION_KEY, JSON.stringify(fallbackUser));
+        setUser(fallbackUser);
+      }
     }
   };
 
-  // 🔐 Roles
   const hasRole = (role) => {
     if (!user?.roles) return false;
     return user.roles.includes(role);

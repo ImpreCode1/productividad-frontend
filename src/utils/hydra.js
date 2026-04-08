@@ -36,6 +36,7 @@ export function validateHydraToken(token) {
 
 export function getCurrentUser() {
   const token = getTokenFromUrl();
+  console.log("TOKEN FROM URL:", token);
   if (!token) return null;
 
   const result = validateHydraToken(token);

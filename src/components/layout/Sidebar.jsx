@@ -8,18 +8,27 @@ import {
   UserCog,
 } from "lucide-react";
 
-// -----------------------------
-// CONFIG MENÚ (NUEVO)
-// -----------------------------
 const menuSections = [
   {
     title: "General",
     items: [
       {
-        path: "/",
-        label: "Dashboard",
+        path: "/dashboard",
+        label: "Mi Dashboard",
         icon: LayoutDashboard,
-        roles: ["ADMIN", "LEADER", "EMPLOYEE"],
+        roles: ["EMPLOYEE"],
+      },
+      {
+        path: "/dashboard/team",
+        label: "Dashboard Equipo",
+        icon: LayoutDashboard,
+        roles: ["LEADER"],
+      },
+      {
+        path: "/dashboard/admin",
+        label: "Dashboard Global",
+        icon: LayoutDashboard,
+        roles: ["ADMIN"],
       },
     ],
   },
@@ -28,15 +37,27 @@ const menuSections = [
     items: [
       {
         path: "/tracking",
-        label: "Mi Seguimiento",
+        label: "Mis Indicadores",
         icon: LineChart,
-        roles: ["ADMIN", "LEADER", "EMPLOYEE"],
+        roles: ["EMPLOYEE"],
       },
       {
-        path: "/team",
-        label: "Equipo",
-        icon: Users,
-        roles: ["ADMIN", "LEADER"],
+        path: "/tracking/team",
+        label: "Seguimiento Equipo",
+        icon: LineChart,
+        roles: ["LEADER"],
+      },
+      {
+        path: "/evidence",
+        label: "Evidencias",
+        icon: LineChart,
+        roles: ["EMPLOYEE", "LEADER"],
+      },
+      {
+        path: "/action-plan",
+        label: "Planes de Acción",
+        icon: LineChart,
+        roles: ["EMPLOYEE", "LEADER"],
       },
     ],
   },
@@ -55,31 +76,32 @@ const menuSections = [
         icon: UserCog,
         roles: ["ADMIN"],
       },
+      {
+        path: "/roles",
+        label: "Roles",
+        icon: UserCog,
+        roles: ["ADMIN"],
+      },
     ],
   },
 ];
 
-// -----------------------------
-// COMPONENTE
-// -----------------------------
 export default function Sidebar() {
   const location = useLocation();
   const { hasRole, user } = useAuth();
 
   const canAccess = (roles) => {
-    if (!user?.roles || user.roles.length === 0) return false;
+    if (!user?.roles || user.roles.length === 0) return true;
     return roles.some((role) => hasRole(role));
   };
 
   return (
     <aside className="w-64 bg-gray-900 text-white min-h-screen p-4 flex flex-col">
-      {/* HEADER */}
       <div className="mb-8">
         <h1 className="text-xl font-bold tracking-wide">Productividad</h1>
         <p className="text-xs text-gray-400">Sistema de Evaluación</p>
       </div>
 
-      {/* NAV */}
       <nav className="flex flex-col gap-6">
         {menuSections.map((section) => {
           const visibleItems = section.items.filter((item) =>
@@ -122,11 +144,10 @@ export default function Sidebar() {
         })}
       </nav>
 
-      {/* FOOTER */}
       <div className="mt-auto pt-6 border-t border-gray-800">
-        <p className="text-xs text-gray-500">{user?.name}</p>
+        <p className="text-xs text-gray-500">{user?.name || "Cargando..."}</p>
         <p className="text-xs text-gray-400">
-          {user?.roles?.join(", ")}
+          {user?.roles?.join(", ") || ""}
         </p>
       </div>
     </aside>

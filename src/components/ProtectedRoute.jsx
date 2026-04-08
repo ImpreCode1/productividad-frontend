@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useAuth } from "../hooks/useAuth";
 import { getCurrentUser } from "../utils/hydra";
 import { setHydraCookie } from "../api/client";
@@ -6,43 +6,52 @@ import { setHydraCookie } from "../api/client";
 export default function ProtectedRoute({ children }) {
   const { user, login } = useAuth();
   const [loading, setLoading] = useState(true);
+  const loginRef = useRef(login);
+  const initRef = useRef(false);
+
+  useEffect(() => {
+    loginRef.current = login;
+  }, [login]);
 
   useEffect(() => {
     const initAuth = async () => {
-      const result = getCurrentUser();
-      if (result) {
-        setHydraCookie(result.token);
-        await login(result.user, result.token);
+      if (initRef.current) return;
+      initRef.current = true;
+
+      try {
+        if (user) {
+          setLoading(false);
+          return;
+        }
+
+        const result = getCurrentUser();
+
+        if (result?.token) {
+          setHydraCookie(result.token);
+          await loginRef.current(result.user, result.token);
+        }
+      } catch (error) {
+        console.error("Error inicializando auth:", error);
+      } finally {
+        setLoading(false);
       }
-      
-      setLoading(false);
     };
 
     initAuth();
-  }, []);
+  }, [user]);
 
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-100">
-        <div className="text-gray-500">Cargando...</div>
+        <div className="text-gray-500">Cargando sesión...</div>
       </div>
     );
   }
 
   if (!user) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-100">
-        <div className="text-center">
-          <p className="text-gray-600 mb-4">Debes iniciar sesión</p>
-          <a 
-            href={import.meta.env.VITE_HYDRA_LOGIN_URL || "/login"} 
-            className="text-blue-600 hover:text-blue-800"
-          >
-            Ir a login
-          </a>
-        </div>
-      </div>
-    );
+    window.location.href =
+      import.meta.env.VITE_HYDRA_LOGIN_URL || "/login";
+    return null;
   }
 
   return children;
