@@ -6,7 +6,9 @@ export function AssignmentModal({ isOpen, onClose, assignment, users, year, onSa
     user_id: assignment?.user_id || "",
     indicator_name: assignment?.indicator_name || "",
     formula: assignment?.formula || "",
-    target_value: assignment?.target_value || "",
+    target_value: assignment && assignment.target_value !== undefined && assignment.target_value !== null 
+      ? assignment.target_value 
+      : 100,
     weight: assignment?.weight || "",
     frequency: assignment?.frequency || "MONTHLY",
     is_active: assignment?.is_active ?? true,
@@ -113,17 +115,21 @@ export function AssignmentModal({ isOpen, onClose, assignment, users, year, onSa
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Meta
+              Meta (%)
             </label>
             <input
               type="number"
               step="0.01"
+              min="0"
               value={formData.target_value}
               onChange={(e) => handleChange("target_value", e.target.value)}
               required
               className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              placeholder="0.00"
+              placeholder="Por defecto 100%"
             />
+            <p className="text-xs text-gray-500 mt-1">
+              Porcentaje a superar. Por ejemplo: si la fórmula da 90% y la meta es 100%, el logro será 90%.
+            </p>
           </div>
 
           <div>

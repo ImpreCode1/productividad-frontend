@@ -11,5 +11,5 @@ export const getTrackingById = (id) =>
 export const updateTracking = (id, data) =>
   api.patch(`/tracking/${id}`, data);
 
-export const closeTracking = (id) =>
-  api.patch(`/tracking/${id}/close`);
+export const closeTracking = (id, achievedValue = null, achievedTotal = null) =>
+  api.patch(`/tracking/${id}/close`, { achieved_value: achievedValue, achieved_total: achievedTotal });

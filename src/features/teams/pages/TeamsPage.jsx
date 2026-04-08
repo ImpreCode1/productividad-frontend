@@ -10,7 +10,6 @@ export default function TeamsPage() {
   const { data: users } = useUsers();
   const assignLeaderMutation = useAssignLeader();
 
-  const [selectedTeam, setSelectedTeam] = useState(null);
   const [showMoveModal, setShowMoveModal] = useState(false);
   const [selectedMember, setSelectedMember] = useState(null);
   const [search, setSearch] = useState("");
