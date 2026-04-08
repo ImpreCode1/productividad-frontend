@@ -20,3 +20,5 @@ export const importUsersExcel = (file) => {
 };
 
 export const updateUser = (id, data) => api.patch(`/users/${id}`, data);
+
+export const createUser = (data) => api.post("/users/", data);

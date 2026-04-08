@@ -1,17 +1,20 @@
 import { useState } from "react";
-import { UserCog, Upload, Search } from "lucide-react";
-import { useUsers } from "../hooks/useUsers";
+import { UserCog, Upload, Search, Plus } from "lucide-react";
+import { useUsers, useCreateUser } from "../hooks/useUsers";
 import UserList from "../components/UserList";
 import { UserModal } from "../components/UserModal";
 import { ImportExcelModal } from "../components/ImportExcelModal";
+import { CreateUserModal } from "../components/CreateUserModal";
 
 export default function UsersPage() {
   const [search, setSearch] = useState("");
   const [editUser, setEditUser] = useState(null);
   const [showImport, setShowImport] = useState(false);
   const [showUserModal, setShowUserModal] = useState(false);
+  const [showCreateModal, setShowCreateModal] = useState(false);
 
   const { data: users, isLoading, error } = useUsers();
+  const createMutation = useCreateUser();
 
   const filteredUsers = users?.filter(
     (user) =>
@@ -23,6 +26,10 @@ export default function UsersPage() {
   const handleEdit = (user) => {
     setEditUser(user);
     setShowUserModal(true);
+  };
+
+  const handleCreate = async (data) => {
+    await createMutation.mutateAsync(data);
   };
 
   return (
@@ -38,13 +45,22 @@ export default function UsersPage() {
           </p>
         </div>
 
-        <button
-          onClick={() => setShowImport(true)}
-          className="flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors"
-        >
-          <Upload className="h-4 w-4" />
-          Importar Excel
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={() => setShowCreateModal(true)}
+            className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            <Plus className="h-4 w-4" />
+            Nuevo usuario
+          </button>
+          <button
+            onClick={() => setShowImport(true)}
+            className="flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors"
+          >
+            <Upload className="h-4 w-4" />
+            Importar Excel
+          </button>
+        </div>
       </div>
 
       <div className="bg-white rounded-lg shadow p-4">
@@ -86,6 +102,12 @@ export default function UsersPage() {
       <ImportExcelModal
         isOpen={showImport}
         onClose={() => setShowImport(false)}
+      />
+
+      <CreateUserModal
+        isOpen={showCreateModal}
+        onClose={() => setShowCreateModal(false)}
+        onSave={handleCreate}
       />
     </div>
   );
