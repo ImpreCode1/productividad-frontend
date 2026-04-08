@@ -12,14 +12,17 @@ export function CreateUserModal({ isOpen, onClose, onSave }) {
   });
 
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
 
   const handleChange = (field, value) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
+    setError(null);
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
+    setError(null);
 
     try {
       await onSave(formData);
@@ -32,8 +35,9 @@ export function CreateUserModal({ isOpen, onClose, onSave }) {
         area: "",
         subarea: "",
       });
-    } catch (error) {
-      console.error("Error creating user:", error);
+    } catch (err) {
+      const message = err.response?.data?.detail || "Error al crear usuario";
+      setError(message);
     } finally {
       setLoading(false);
     }
@@ -129,6 +133,12 @@ export function CreateUserModal({ isOpen, onClose, onSave }) {
             placeholder="Opcional"
           />
         </div>
+
+        {error && (
+          <div className="bg-red-50 border border-red-200 text-red-700 px-3 py-2 rounded-lg text-sm">
+            {error}
+          </div>
+        )}
 
         <div className="flex gap-3 pt-2">
           <button

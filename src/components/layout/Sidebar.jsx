@@ -2,7 +2,6 @@ import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "../../hooks/useAuth";
 import {
   LayoutDashboard,
-  LineChart,
   Users,
   Target,
   UserCog,
@@ -25,12 +24,6 @@ const menuSections = [
   {
     title: "Operación",
     items: [
-      {
-        path: "/tracking",
-        label: "Mi Seguimiento",
-        icon: LineChart,
-        roles: ["ADMIN", "LEADER", "EMPLOYEE"],
-      },
       {
         path: "/evidence",
         label: "Evidencias",
