@@ -1,7 +1,10 @@
 import api from "./client";
 
-export const getUserDashboard = (userId) =>
-  api.get(`/dashboard/user/${userId}`);
+export const getMyDashboard = (year) =>
+  api.get(`/dashboard/me?year=${year}`);
 
-export const getTeamDashboard = () =>
-  api.get("/dashboard/team");
+export const getUserDashboard = (userId, year) =>
+  api.get(`/dashboard/user/${userId}?year=${year}`);
+
+export const getTeamDashboard = (year) =>
+  api.get(`/dashboard/team?year=${year}`);

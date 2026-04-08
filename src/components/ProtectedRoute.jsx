@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from "react";
 import { useAuth } from "../hooks/useAuth";
-import { getCurrentUser } from "../utils/hydra";
+import { getCurrentUser } from "../utils/auth";
 import { setHydraCookie } from "../api/client";
 
 export default function ProtectedRoute({ children }) {

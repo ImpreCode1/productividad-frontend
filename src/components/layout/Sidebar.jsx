@@ -6,6 +6,8 @@ import {
   Users,
   Target,
   UserCog,
+  FileText,
+  Paperclip,
 } from "lucide-react";
 
 const menuSections = [
@@ -13,22 +15,10 @@ const menuSections = [
     title: "General",
     items: [
       {
-        path: "/dashboard",
-        label: "Mi Dashboard",
+        path: "/",
+        label: "Dashboard",
         icon: LayoutDashboard,
-        roles: ["EMPLOYEE"],
-      },
-      {
-        path: "/dashboard/team",
-        label: "Dashboard Equipo",
-        icon: LayoutDashboard,
-        roles: ["LEADER"],
-      },
-      {
-        path: "/dashboard/admin",
-        label: "Dashboard Global",
-        icon: LayoutDashboard,
-        roles: ["ADMIN"],
+        roles: ["ADMIN", "LEADER", "EMPLOYEE"],
       },
     ],
   },
@@ -37,27 +27,32 @@ const menuSections = [
     items: [
       {
         path: "/tracking",
-        label: "Mis Indicadores",
+        label: "Mi Seguimiento",
         icon: LineChart,
-        roles: ["EMPLOYEE"],
-      },
-      {
-        path: "/tracking/team",
-        label: "Seguimiento Equipo",
-        icon: LineChart,
-        roles: ["LEADER"],
+        roles: ["ADMIN", "LEADER", "EMPLOYEE"],
       },
       {
         path: "/evidence",
         label: "Evidencias",
-        icon: LineChart,
-        roles: ["EMPLOYEE", "LEADER"],
+        icon: Paperclip,
+        roles: ["ADMIN", "LEADER", "EMPLOYEE"],
       },
       {
         path: "/action-plan",
         label: "Planes de Acción",
-        icon: LineChart,
-        roles: ["EMPLOYEE", "LEADER"],
+        icon: FileText,
+        roles: ["ADMIN", "LEADER", "EMPLOYEE"],
+      },
+    ],
+  },
+  {
+    title: "Gestión",
+    items: [
+      {
+        path: "/leader",
+        label: "Equipo",
+        icon: Users,
+        roles: ["ADMIN", "LEADER"],
       },
     ],
   },
@@ -76,23 +71,17 @@ const menuSections = [
         icon: UserCog,
         roles: ["ADMIN"],
       },
-      {
-        path: "/roles",
-        label: "Roles",
-        icon: UserCog,
-        roles: ["ADMIN"],
-      },
     ],
   },
 ];
 
 export default function Sidebar() {
   const location = useLocation();
-  const { hasRole, user } = useAuth();
+  const { user } = useAuth();
 
   const canAccess = (roles) => {
     if (!user?.roles || user.roles.length === 0) return true;
-    return roles.some((role) => hasRole(role));
+    return roles.some((role) => user.roles.includes(role));
   };
 
   return (
@@ -118,7 +107,10 @@ export default function Sidebar() {
 
               <div className="space-y-1">
                 {visibleItems.map((item) => {
-                  const isActive = location.pathname === item.path;
+                  const isActive =
+                    location.pathname === item.path ||
+                    (item.path !== "/" && location.pathname.startsWith(item.path));
+
                   const Icon = item.icon;
 
                   return (
@@ -145,8 +137,10 @@ export default function Sidebar() {
       </nav>
 
       <div className="mt-auto pt-6 border-t border-gray-800">
-        <p className="text-xs text-gray-500">{user?.name || "Cargando..."}</p>
-        <p className="text-xs text-gray-400">
+        <p className="text-xs text-gray-500 truncate">
+          {user?.name || "Cargando..."}
+        </p>
+        <p className="text-xs text-gray-400 truncate">
           {user?.roles?.join(", ") || ""}
         </p>
       </div>

@@ -4,21 +4,21 @@ import Layout from "../components/layout/Layout";
 
 import NoAccessPage from "../pages/NoAccessPage";
 
-// Features
 import Dashboard from "../features/dashboard/pages/Dashboard";
 import TrackingPage from "../features/tracking/pages/TrackingPage";
 import UsersPage from "../features/users/pages/UsersPage";
 import AssignmentsPage from "../features/assignments/pages/AssignmentsPage";
-import TeamPage from "../features/team/pages/TeamPage";
+import TeamDashboard from "../features/leader/pages/TeamDashboard";
+import ActionPlanPage from "../features/actionPlan/pages/ActionPlanPage";
+import EvidencePage from "../features/evidence/pages/EvidencePage";
 
 export default function AppRouter() {
   return (
     <BrowserRouter>
       <Routes>
-        {/* Público */}
+
         <Route path="/no-access" element={<NoAccessPage />} />
 
-        {/* Privado */}
         <Route
           path="/"
           element={
@@ -27,21 +27,39 @@ export default function AppRouter() {
             </ProtectedRoute>
           }
         >
-          {/* Dashboard */}
           <Route index element={<Dashboard />} />
 
-          {/* Usuario */}
-          <Route path="tracking" element={<TrackingPage />} />
+          <Route
+            path="tracking"
+            element={<TrackingPage />}
+          />
 
-          {/* Líder */}
-          <Route path="team" element={<TeamPage />} />
+          <Route
+            path="action-plan"
+            element={<ActionPlanPage />}
+          />
 
-          {/* Admin */}
-          <Route path="users" element={<UsersPage />} />
-          <Route path="assignments" element={<AssignmentsPage />} />
+          <Route
+            path="evidence"
+            element={<EvidencePage />}
+          />
+
+          <Route
+            path="leader"
+            element={<TeamDashboard />}
+          />
+
+          <Route
+            path="users"
+            element={<UsersPage />}
+          />
+
+          <Route
+            path="assignments"
+            element={<AssignmentsPage />}
+          />
         </Route>
 
-        {/* Fallback */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>
