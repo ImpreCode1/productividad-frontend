@@ -28,7 +28,7 @@ const menuSections = [
         path: "/evidence",
         label: "Evidencias",
         icon: Paperclip,
-        roles: ["ADMIN", "LEADER", "EMPLOYEE"],
+        roles: ["EMPLOYEE"],
       },
       {
         path: "/action-plan",

@@ -1,9 +1,12 @@
 import { useState } from "react";
-import { Users, CheckCircle, Lock, Unlock, X, ChevronDown, ChevronRight, ClipboardList } from "lucide-react";
+import { Users, CheckCircle, Lock, Unlock, X, ChevronDown, ChevronRight, ClipboardList, Paperclip, FileText, Image, File } from "lucide-react";
 import { useTeamDashboard } from "../hooks";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import * as trackingApi from "../../../api/tracking.api";
 import * as actionPlanApi from "../../../api/actionPlan.api";
+import * as evidenceApi from "../../../api/evidence.api";
+
+const backendUrl = import.meta.env.VITE_BACKEND_URL || "";
 
 export default function TeamDashboard() {
   const currentYear = new Date().getFullYear();
@@ -18,6 +21,13 @@ export default function TeamDashboard() {
   const [actionPlanModal, setActionPlanModal] = useState({ open: false, month: null, indicator: null, actionPlanId: null });
   const [actionPlanData, setActionPlanData] = useState({ reason_not_met: "", action_plan: "" });
   const [actionPlanLoading, setActionPlanLoading] = useState(false);
+  const [evidenceModal, setEvidenceModal] = useState({ open: false, trackingId: null, monthName: "", indicatorName: "" });
+
+  const { data: evidenceData, refetch: refetchEvidence, isLoading: evidenceLoading, error: evidenceError } = useQuery({
+    queryKey: ["evidence", evidenceModal.trackingId],
+    queryFn: () => evidenceModal.trackingId ? evidenceApi.getEvidence(evidenceModal.trackingId) : Promise.resolve({ data: { evidence: [] } }),
+    enabled: !!evidenceModal.trackingId,
+  });
 
   const closeMutation = useMutation({
     mutationFn: ({ trackingId, achievedValue, achievedTotal }) => 
@@ -28,6 +38,20 @@ export default function TeamDashboard() {
       setCaseInput({ casos: "", total: "" });
     },
   });
+
+  const handleOpenEvidenceModal = (month, indicator) => {
+    // console.log("Opening evidence modal - month:", month, "indicator:", indicator);
+    if (!month.tracking_id) {
+      alert("Error: ID de tracking no disponible");
+      return;
+    }
+    setEvidenceModal({
+      open: true,
+      trackingId: month.tracking_id,
+      monthName: getMonthName(month.month),
+      indicatorName: indicator.indicator_name
+    });
+  };
 
   const toggleMember = (userId) => {
     setExpandedMembers(prev => ({
@@ -44,7 +68,7 @@ export default function TeamDashboard() {
   };
 
   const handleOpenCloseModal = (month, indicator) => {
-    console.log("Opening modal - month:", month, "indicator:", indicator);
+    // console.log("Opening modal - month:", month, "indicator:", indicator);
     setCloseModal({ open: true, month, indicator });
     setCaseInput({ casos: "", total: "" });
   };
@@ -315,6 +339,7 @@ export default function TeamDashboard() {
                                       <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">Logrado</th>
                                       <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">Cumplimiento</th>
                                       <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">Estado</th>
+                                      <th className="px-4 py-2 text-center text-xs font-medium text-gray-500">Evidencias</th>
                                       <th className="px-4 py-2 text-right text-xs font-medium text-gray-500">Acción</th>
                                     </tr>
                                   </thead>
@@ -348,6 +373,22 @@ export default function TeamDashboard() {
                                         </td>
                                         <td className="px-4 py-2">
                                           {getStatusBadge(month)}
+                                        </td>
+                                        <td className="px-4 py-2 text-center">
+                                          <button
+                                            onClick={() => handleOpenEvidenceModal(month, indicator)}
+                                            className={`inline-flex items-center justify-center p-2 rounded-lg transition-colors ${
+                                              month.evidence_count > 0
+                                                ? "text-green-600 hover:bg-green-50"
+                                                : "text-gray-400 hover:text-blue-600 hover:bg-blue-50"
+                                            }`}
+                                            title={month.evidence_count > 0 ? `Ver ${month.evidence_count} evidencia(s)` : "Sin evidencias"}
+                                          >
+                                            <Paperclip size={18} />
+                                            {month.evidence_count > 0 && (
+                                              <span className="ml-1 text-xs font-medium">{month.evidence_count}</span>
+                                            )}
+                                          </button>
                                         </td>
                                         <td className="px-4 py-2 text-right">
                                           {canRegister(month) && (
@@ -558,6 +599,81 @@ export default function TeamDashboard() {
                   {actionPlanLoading ? "Guardando..." : "Guardar"}
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {evidenceModal.open && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm bg-black/30">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-lg mx-4 max-h-[80vh] overflow-hidden flex flex-col">
+            <div className="flex justify-between items-center p-4 border-b">
+              <div>
+                <h3 className="text-lg font-semibold flex items-center gap-2">
+                  <Paperclip className="h-5 w-5" />
+                  Evidencias
+                </h3>
+                <p className="text-sm text-gray-500">
+                  {evidenceModal.monthName} - {evidenceModal.indicatorName}
+                </p>
+              </div>
+              <button
+                onClick={() => setEvidenceModal({ open: false, trackingId: null, monthName: "", indicatorName: "" })}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <div className="p-4 overflow-auto flex-1">
+              {evidenceLoading ? (
+                <p className="text-gray-500 text-center py-4">Cargando...</p>
+              ) : evidenceError ? (
+                <div className="text-center py-4">
+                  <p className="text-red-500 font-medium">Error al cargar evidencias</p>
+                  <p className="text-xs text-gray-500 mt-1">{evidenceError.response?.data?.detail || evidenceError.message}</p>
+                </div>
+              ) : !evidenceData?.data?.evidence || evidenceData.data.evidence.length === 0 ? (
+                <div className="text-center py-8">
+                  <Paperclip className="h-8 w-8 mx-auto text-gray-300 mb-2" />
+                  <p className="text-gray-500">No hay evidencias para este seguimiento</p>
+                  <p className="text-xs text-gray-400 mt-2">El empleado no ha subido ningún archivo</p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {evidenceData?.data?.evidence?.map((ev) => (
+                    <div
+                      key={ev.id}
+                      className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+                    >
+                      <div className="flex items-center gap-3">
+                        {ev.file_path?.endsWith(".pdf") ? (
+                          <FileText size={16} className="text-red-500" />
+                        ) : ev.file_path?.match(/\.(jpg|jpeg|png)$/i) ? (
+                          <Image size={16} className="text-green-500" />
+                        ) : (
+                          <File size={16} className="text-gray-500" />
+                        )}
+                        <a
+                          href={`${backendUrl}${ev.file_path}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-sm text-blue-600 hover:underline"
+                        >
+                          {ev.file_path?.split("/").pop()}
+                        </a>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            <div className="p-4 border-t">
+              <button
+                onClick={() => setEvidenceModal({ open: false, trackingId: null, monthName: "", indicatorName: "" })}
+                className="w-full px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700"
+              >
+                Cerrar
+              </button>
             </div>
           </div>
         </div>
