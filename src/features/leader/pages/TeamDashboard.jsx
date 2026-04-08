@@ -1,8 +1,9 @@
 import { useState } from "react";
-import { Users, CheckCircle, Lock, Unlock, X, ChevronDown, ChevronRight } from "lucide-react";
+import { Users, CheckCircle, Lock, Unlock, X, ChevronDown, ChevronRight, ClipboardList } from "lucide-react";
 import { useTeamDashboard } from "../hooks";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import * as trackingApi from "../../../api/tracking.api";
+import * as actionPlanApi from "../../../api/actionPlan.api";
 
 export default function TeamDashboard() {
   const currentYear = new Date().getFullYear();
@@ -14,6 +15,9 @@ export default function TeamDashboard() {
   const [expandedIndicators, setExpandedIndicators] = useState({});
   const [closeModal, setCloseModal] = useState({ open: false, month: null, indicator: null });
   const [caseInput, setCaseInput] = useState({ casos: "", total: "" });
+  const [actionPlanModal, setActionPlanModal] = useState({ open: false, month: null, indicator: null, actionPlanId: null });
+  const [actionPlanData, setActionPlanData] = useState({ reason_not_met: "", action_plan: "" });
+  const [actionPlanLoading, setActionPlanLoading] = useState(false);
 
   const closeMutation = useMutation({
     mutationFn: ({ trackingId, achievedValue, achievedTotal }) => 
@@ -54,7 +58,6 @@ export default function TeamDashboard() {
     let finalValue = null;
     let finalTotal = null;
     
-    // Solo usar el cálculo de casos (Logrado / Total) * 100
     if (caseInput.casos && caseInput.total) {
       const casos = parseFloat(caseInput.casos);
       const total = parseFloat(caseInput.total);
@@ -69,14 +72,92 @@ export default function TeamDashboard() {
       return;
     }
 
+    const percentage = (finalValue / finalTotal) * 100;
+    const targetValue = Number(closeModal.indicator?.target_value) || 0;
+    const isMet = percentage >= targetValue;
+
     try {
       await closeMutation.mutateAsync({
         trackingId: closeModal.month.tracking_id,
         achievedValue: finalValue,
         achievedTotal: finalTotal,
       });
+
+      if (isMet) {
+        setActionPlanData({
+          reason_not_met: "Meta cumplida satisfactoriamente",
+          action_plan: "Se alcanzó el objetivo establecido. Continuar con el mismo nivel de desempeño."
+        });
+        setActionPlanModal({ 
+          open: true, 
+          month: closeModal.month, 
+          indicator: closeModal.indicator,
+          actionPlanId: null 
+        });
+      } else {
+        setActionPlanData({ reason_not_met: "", action_plan: "" });
+        setActionPlanModal({ 
+          open: true, 
+          month: closeModal.month, 
+          indicator: closeModal.indicator,
+          actionPlanId: null 
+        });
+      }
     } catch (error) {
       alert(error.response?.data?.detail || "Error al cerrar evaluación");
+    }
+  };
+
+  const handleOpenActionPlanModal = (month, indicator) => {
+    // Si ya existe un plan de acción, guardamos el ID para actualizar
+    const existingPlan = month.action_plans && month.action_plans.length > 0 
+      ? month.action_plans[0] 
+      : null;
+    
+    setActionPlanModal({ 
+      open: true, 
+      month, 
+      indicator,
+      actionPlanId: existingPlan?.id || null 
+    });
+    
+    if (existingPlan) {
+      setActionPlanData({
+        reason_not_met: existingPlan.reason_not_met || "",
+        action_plan: existingPlan.action_plan || ""
+      });
+    } else {
+      setActionPlanData({ reason_not_met: "", action_plan: "" });
+    }
+  };
+
+  const handleSaveActionPlan = async () => {
+    if (!actionPlanModal.month?.tracking_id) {
+      alert("Error: ID de tracking no disponible");
+      return;
+    }
+
+    if (!actionPlanData.action_plan.trim()) {
+      alert("Por favor ingresa el plan de acción");
+      return;
+    }
+
+    try {
+      setActionPlanLoading(true);
+      // Si existe actionPlanId, actualizar; si no, crear nuevo
+      if (actionPlanModal.actionPlanId) {
+        await actionPlanApi.updateActionPlan(actionPlanModal.actionPlanId, actionPlanData);
+      } else {
+        await actionPlanApi.createActionPlan(actionPlanModal.month.tracking_id, actionPlanData);
+      }
+      
+      queryClient.invalidateQueries({ queryKey: ["team", "dashboard", year] });
+      setActionPlanModal({ open: false, month: null, indicator: null, actionPlanId: null });
+      setActionPlanData({ reason_not_met: "", action_plan: "" });
+    } catch (error) {
+      alert(error.response?.data?.detail || "Error al guardar plan de acción");
+    } finally {
+      setActionPlanLoading(false);
     }
   };
 
@@ -272,7 +353,7 @@ export default function TeamDashboard() {
                                           {canRegister(month) && (
                                             <button
                                               onClick={() => handleOpenCloseModal(month, indicator)}
-                                              className="text-xs bg-green-600 text-white px-2 py-1 rounded hover:bg-green-700"
+                                              className="text-xs bg-green-600 text-white px-2 py-1 rounded hover:bg-green-700 mr-1"
                                             >
                                               Registrar
                                             </button>
@@ -280,9 +361,17 @@ export default function TeamDashboard() {
                                           {canClose(month) && (
                                             <button
                                               onClick={() => handleOpenCloseModal(month, indicator)}
-                                              className="text-xs bg-blue-600 text-white px-2 py-1 rounded hover:bg-blue-700"
+                                              className="text-xs bg-blue-600 text-white px-2 py-1 rounded hover:bg-blue-700 mr-1"
                                             >
                                               Cerrar
+                                            </button>
+                                          )}
+                                          {month.is_closed && (
+                                            <button
+                                              onClick={() => handleOpenActionPlanModal(month, indicator)}
+                                              className="text-xs bg-purple-600 text-white px-2 py-1 rounded hover:bg-purple-700"
+                                            >
+                                              Plan Acción
                                             </button>
                                           )}
                                         </td>
@@ -309,7 +398,7 @@ export default function TeamDashboard() {
       )}
 
       {closeModal.open && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+        <div className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm bg-black/30">
           <div className="bg-white rounded-lg shadow-xl w-full max-w-md mx-4">
             <div className="flex justify-between items-center p-4 border-b">
               <h3 className="text-lg font-semibold">
@@ -396,6 +485,77 @@ export default function TeamDashboard() {
                   className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
                 >
                   {closeMutation.isPending ? "Guardando..." : "Guardar"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {actionPlanModal.open && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm bg-black/30">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-md mx-4">
+            <div className="flex justify-between items-center p-4 border-b">
+              <h3 className="text-lg font-semibold flex items-center gap-2">
+                <ClipboardList className="h-5 w-5" />
+                Plan de Acción
+              </h3>
+              <button
+                onClick={() => setActionPlanModal({ open: false, month: null, indicator: null })}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <div className="p-4 space-y-4">
+              <div className="bg-gray-50 p-3 rounded-lg">
+                <p className="text-sm text-gray-600">Indicador</p>
+                <p className="font-medium">{actionPlanModal.indicator?.indicator_name}</p>
+                <p className="text-sm text-gray-500">
+                  Mes: {actionPlanModal.month ? getMonthName(actionPlanModal.month.month) : "-"}
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Razón del no cumplimiento (opcional)
+                </label>
+                <textarea
+                  value={actionPlanData.reason_not_met}
+                  onChange={(e) => setActionPlanData({ ...actionPlanData, reason_not_met: e.target.value })}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  rows={2}
+                  placeholder="Describe la razón por la que no se cumplió la meta"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Plan de Acción
+                </label>
+                <textarea
+                  value={actionPlanData.action_plan}
+                  onChange={(e) => setActionPlanData({ ...actionPlanData, action_plan: e.target.value })}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  rows={3}
+                  placeholder="Describe las acciones a tomar"
+                  required
+                />
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setActionPlanModal({ open: false, month: null, indicator: null })}
+                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={handleSaveActionPlan}
+                  disabled={actionPlanLoading}
+                  className="flex-1 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50"
+                >
+                  {actionPlanLoading ? "Guardando..." : "Guardar"}
                 </button>
               </div>
             </div>
