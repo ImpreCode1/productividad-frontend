@@ -18,3 +18,5 @@ export const importUsersExcel = (file) => {
     headers: { "Content-Type": "multipart/form-data" },
   });
 };
+
+export const updateUser = (id, data) => api.patch(`/users/${id}`, data);

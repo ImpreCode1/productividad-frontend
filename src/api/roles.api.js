@@ -11,5 +11,5 @@ export const updateRole = (id, data) =>
 export const deleteRole = (id) =>
   api.delete(`/roles/${id}`);
 
-export const assignRolesToUser = (userId, roles) =>
-  api.patch(`/roles/users/${userId}`, { roles });
+export const assignRolesToUser = (userId, roleIds) =>
+  api.patch(`/roles/users/${userId}`, { role_ids: roleIds });
