@@ -60,7 +60,7 @@ export default function AssignmentsPage() {
         <div>
           <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
             <Target className="h-7 w-7" />
-            Asignaciones
+            Indicadores
           </h1>
           <p className="text-gray-500 mt-1">
             Configurar indicadores por usuario/año

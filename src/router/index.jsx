@@ -9,6 +9,7 @@ import TrackingPage from "../features/tracking/pages/TrackingPage";
 import UsersPage from "../features/users/pages/UsersPage";
 import AssignmentsPage from "../features/assignments/pages/AssignmentsPage";
 import TeamDashboard from "../features/leader/pages/TeamDashboard";
+import TeamsPage from "../features/teams/pages/TeamsPage";
 import ActionPlanPage from "../features/actionPlan/pages/ActionPlanPage";
 import EvidencePage from "../features/evidence/pages/EvidencePage";
 
@@ -47,6 +48,11 @@ export default function AppRouter() {
           <Route
             path="leader"
             element={<TeamDashboard />}
+          />
+
+          <Route
+            path="teams"
+            element={<TeamsPage />}
           />
 
           <Route

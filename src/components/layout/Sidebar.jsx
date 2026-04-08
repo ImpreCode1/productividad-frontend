@@ -61,8 +61,14 @@ const menuSections = [
     items: [
       {
         path: "/assignments",
-        label: "Asignaciones",
+        label: "Indicadores",
         icon: Target,
+        roles: ["ADMIN"],
+      },
+      {
+        path: "/teams",
+        label: "Equipos",
+        icon: Users,
         roles: ["ADMIN"],
       },
       {

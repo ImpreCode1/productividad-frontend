@@ -40,7 +40,7 @@ export function ImportAssignmentsModal({ isOpen, onClose, year }) {
       setPreview(null);
       onClose();
     } catch (err) {
-      setError(err.response?.data?.detail || "Error al importar asignaciones");
+      setError(err.response?.data?.detail || "Error al importar indicadores");
     }
   };
 
@@ -52,7 +52,7 @@ export function ImportAssignmentsModal({ isOpen, onClose, year }) {
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={handleClose} title="Importar asignaciones desde Excel" size="md">
+    <Modal isOpen={isOpen} onClose={handleClose} title="Importar indicadores desde Excel" size="md">
       <div className="space-y-4">
         <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-blue-400 transition-colors">
           <input
@@ -123,7 +123,7 @@ export function ImportAssignmentsModal({ isOpen, onClose, year }) {
           ) : (
             <>
               <CheckCircle className="h-4 w-4 mr-2" />
-              Importar asignaciones
+              Importar indicadores
             </>
           )}
         </button>

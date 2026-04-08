@@ -41,6 +41,7 @@ export function useAssignLeader() {
     mutationFn: ({ id, leader_id }) => usersApi.assignLeader(id, leader_id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["users"] });
+      queryClient.invalidateQueries({ queryKey: ["teams"] });
     },
   });
 }
