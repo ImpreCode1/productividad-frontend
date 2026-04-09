@@ -1,18 +1,46 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Modal } from "../../../components/ui/Modal";
 
 export function AssignmentModal({ isOpen, onClose, assignment, users, year, onSave }) {
   const [formData, setFormData] = useState({
-    user_id: assignment?.user_id || "",
-    indicator_name: assignment?.indicator_name || "",
-    formula: assignment?.formula || "",
-    target_value: assignment && assignment.target_value !== undefined && assignment.target_value !== null 
-      ? assignment.target_value 
-      : 100,
-    weight: assignment?.weight || "",
-    frequency: assignment?.frequency || "MONTHLY",
-    is_active: assignment?.is_active ?? true,
+    user_id: "",
+    indicator_name: "",
+    formula: "",
+    target_value: 100,
+    weight: "",
+    frequency: "MONTHLY",
+    is_active: true,
+    start_month: 1,
+    end_month: 12,
   });
+
+  useEffect(() => {
+    if (assignment) {
+      setFormData({
+        user_id: assignment.user_id || "",
+        indicator_name: assignment.indicator_name || "",
+        formula: assignment.formula || "",
+        target_value: assignment.target_value ?? 100,
+        weight: assignment.weight ?? "",
+        frequency: assignment.frequency || "MONTHLY",
+        is_active: assignment.is_active ?? true,
+        start_month: assignment.start_month ?? 1,
+        end_month: assignment.end_month ?? 12,
+      });
+    } else {
+      setFormData({
+        user_id: "",
+        indicator_name: "",
+        formula: "",
+        target_value: 100,
+        weight: "",
+        frequency: "MONTHLY",
+        is_active: true,
+        start_month: 1,
+        end_month: 12,
+      });
+    }
+  }, [assignment, isOpen]);
 
   const [loading, setLoading] = useState(false);
 
@@ -30,6 +58,8 @@ export function AssignmentModal({ isOpen, onClose, assignment, users, year, onSa
         year: parseInt(year),
         target_value: parseFloat(formData.target_value),
         weight: parseFloat(formData.weight),
+        start_month: formData.start_month ? parseInt(formData.start_month) : undefined,
+        end_month: formData.end_month ? parseInt(formData.end_month) : undefined,
       });
       onClose();
     } catch (error) {
@@ -57,7 +87,8 @@ export function AssignmentModal({ isOpen, onClose, assignment, users, year, onSa
             value={formData.user_id}
             onChange={(e) => handleChange("user_id", e.target.value)}
             required
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            disabled={!!assignment}
+            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 disabled:text-gray-500"
           >
             <option value="">Seleccionar usuario</option>
             {users?.map((user) => (
@@ -146,6 +177,42 @@ export function AssignmentModal({ isOpen, onClose, assignment, users, year, onSa
               className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               placeholder="0"
             />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Mes inicio
+            </label>
+            <select
+              value={formData.start_month}
+              onChange={(e) => handleChange("start_month", parseInt(e.target.value))}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            >
+              {[...Array(12)].map((_, i) => (
+                <option key={i + 1} value={i + 1}>
+                  {i + 1}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Mes fin
+            </label>
+            <select
+              value={formData.end_month}
+              onChange={(e) => handleChange("end_month", parseInt(e.target.value))}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            >
+              {[...Array(12)].map((_, i) => (
+                <option key={i + 1} value={i + 1}>
+                  {i + 1}
+                </option>
+              ))}
+            </select>
           </div>
         </div>
 

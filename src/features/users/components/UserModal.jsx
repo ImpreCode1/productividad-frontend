@@ -59,6 +59,7 @@ function UserForm({ user, users, roles, onClose, assignLeaderMutation, assignRol
           document_number: localUser.document_number,
           position_name: localUser.position_name,
           area: localUser.area,
+          subarea: localUser.subarea,
         },
       });
       onClose();
@@ -202,6 +203,17 @@ function UserForm({ user, users, roles, onClose, assignLeaderMutation, assignRol
                 type="text"
                 value={localUser?.area || ""}
                 onChange={(e) => updateField("area", e.target.value)}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              />
+            </div>
+            <div className="col-span-2">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Subárea
+              </label>
+              <input
+                type="text"
+                value={localUser?.subarea || ""}
+                onChange={(e) => updateField("subarea", e.target.value)}
                 className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               />
             </div>
