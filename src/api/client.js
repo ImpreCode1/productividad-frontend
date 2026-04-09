@@ -8,6 +8,8 @@ const api = axios.create({
   timeout: 10000,
 });
 
+let isRedirecting = false;
+
 api.interceptors.request.use((config) => {
   const token = sessionStorage.getItem("hydra_token");
   
@@ -21,9 +23,14 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
+    if (error.response?.status === 401 && !isRedirecting) {
+      isRedirecting = true;
       sessionStorage.removeItem("hydra_token");
       sessionStorage.removeItem("productividad_user");
+      
+      const loginUrl = import.meta.env.VITE_HYDRA_LOGOUT_URL || "/login";
+      window.location.href = loginUrl;
+      return new Promise(() => {});
     }
     
     return Promise.reject(error);
@@ -31,7 +38,8 @@ api.interceptors.response.use(
 );
 
 export function setHydraCookie(token) {
-  document.cookie = `hydra_access=${token}; path=/; SameSite=Lax; max-age=86400`;
+  const ONE_HOUR = 3600;
+  document.cookie = `hydra_access=${token}; path=/; SameSite=Lax; max-age=${ONE_HOUR}`;
   sessionStorage.setItem("hydra_token", token);
 }
 

@@ -36,14 +36,18 @@ export function validateHydraToken(token) {
 }
 
 export function getCurrentUser() {
-  const token = getTokenFromUrl();
+  const token = getTokenFromUrl() || sessionStorage.getItem("hydra_token");
   if (!token) return null;
 
   const result = validateHydraToken(token);
   if (result.valid) {
-    clearTokenFromUrl();
+    if (getTokenFromUrl()) {
+      clearTokenFromUrl();
+      sessionStorage.setItem("hydra_token", token);
+    }
     return { user: result.user, token };
   }
+  sessionStorage.removeItem("hydra_token");
   return null;
 }
 
