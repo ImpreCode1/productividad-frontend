@@ -18,6 +18,8 @@ export default function TeamDashboard() {
   const [expandedIndicators, setExpandedIndicators] = useState({});
   const [closeModal, setCloseModal] = useState({ open: false, month: null, indicator: null });
   const [caseInput, setCaseInput] = useState({ casos: "", total: "" });
+  const [inputMode, setInputMode] = useState("formula");
+  const [directPercentage, setDirectPercentage] = useState("");
   const [actionPlanModal, setActionPlanModal] = useState({ open: false, month: null, indicator: null, actionPlanId: null });
   const [actionPlanData, setActionPlanData] = useState({ reason_not_met: "", action_plan: "" });
   const [actionPlanLoading, setActionPlanLoading] = useState(false);
@@ -36,6 +38,8 @@ export default function TeamDashboard() {
       queryClient.invalidateQueries({ queryKey: ["team", "dashboard", year] });
       setCloseModal({ open: false, month: null, indicator: null });
       setCaseInput({ casos: "", total: "" });
+      setDirectPercentage("");
+      setInputMode("formula");
     },
   });
 
@@ -68,9 +72,10 @@ export default function TeamDashboard() {
   };
 
   const handleOpenCloseModal = (month, indicator) => {
-    // console.log("Opening modal - month:", month, "indicator:", indicator);
     setCloseModal({ open: true, month, indicator });
     setCaseInput({ casos: "", total: "" });
+    setDirectPercentage("");
+    setInputMode("formula");
   };
 
   const handleClose = async () => {
@@ -82,18 +87,32 @@ export default function TeamDashboard() {
     let finalValue = null;
     let finalTotal = null;
     
-    if (caseInput.casos && caseInput.total) {
-      const casos = parseFloat(caseInput.casos);
-      const total = parseFloat(caseInput.total);
-      if (total > 0) {
-        finalValue = casos;
-        finalTotal = total;
+    if (inputMode === "formula") {
+      if (caseInput.casos && caseInput.total) {
+        const casos = parseFloat(caseInput.casos);
+        const total = parseFloat(caseInput.total);
+        if (total > 0) {
+          finalValue = casos;
+          finalTotal = total;
+        }
       }
-    }
 
-    if (finalValue === null || finalTotal === null) {
-      alert("Por favor ingresa los valores de la fórmula");
-      return;
+      if (finalValue === null || finalTotal === null) {
+        alert("Por favor ingresa los valores de la fórmula");
+        return;
+      }
+    } else {
+      if (!directPercentage) {
+        alert("Por favor ingresa el porcentaje");
+        return;
+      }
+      const percentage = parseFloat(directPercentage);
+      if (percentage < 0 || percentage > 100) {
+        alert("El porcentaje debe estar entre 0 y 100");
+        return;
+      }
+      finalValue = percentage;
+      finalTotal = 100;
     }
 
     const percentage = (finalValue / finalTotal) * 100;
@@ -466,51 +485,112 @@ export default function TeamDashboard() {
                 )}
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Valores de la fórmula
-                </label>
-                <div className="text-xs text-gray-500 mb-2">
-                  Ingresa los valores para calcular el porcentaje de la fórmula
-                </div>
+              <div className="flex gap-2 mb-4">
+                <button
+                  type="button"
+                  onClick={() => setInputMode("formula")}
+                  className={`flex-1 px-3 py-2 text-sm rounded-lg border ${
+                    inputMode === "formula"
+                      ? "bg-blue-600 text-white border-blue-600"
+                      : "bg-white text-gray-600 border-gray-300 hover:bg-gray-50"
+                  }`}
+                >
+                  Fórmula
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setInputMode("percentage")}
+                  className={`flex-1 px-3 py-2 text-sm rounded-lg border ${
+                    inputMode === "percentage"
+                      ? "bg-blue-600 text-white border-blue-600"
+                      : "bg-white text-gray-600 border-gray-300 hover:bg-gray-50"
+                  }`}
+                >
+                  Porcentaje Directo
+                </button>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Logrado
-                  </label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    value={caseInput.casos}
-                    onChange={(e) => setCaseInput({ ...caseInput, casos: e.target.value })}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    placeholder="Valor logrado (numerador)"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Total
-                  </label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    value={caseInput.total}
-                    onChange={(e) => setCaseInput({ ...caseInput, total: e.target.value })}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    placeholder="Valor total (denominador)"
-                  />
-                </div>
-              </div>
+              {inputMode === "formula" ? (
+                <>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Valores de la fórmula
+                    </label>
+                    <div className="text-xs text-gray-500 mb-2">
+                      Ingresa los valores para calcular el porcentaje de la fórmula
+                    </div>
+                  </div>
 
-              {caseInput.casos && caseInput.total && parseFloat(caseInput.total) > 0 && (
-                <div className="bg-blue-50 p-3 rounded-lg text-center">
-                  <p className="text-sm text-gray-600">Resultado (se guardará como logrado):</p>
-                  <p className="text-lg font-bold text-blue-600">
-                    {((parseFloat(caseInput.casos) / parseFloat(caseInput.total)) * 100).toFixed(2)}%
-                  </p>
-                </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Logrado
+                      </label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        value={caseInput.casos}
+                        onChange={(e) => setCaseInput({ ...caseInput, casos: e.target.value })}
+                        className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        placeholder="Valor logrado (numerador)"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Total
+                      </label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        value={caseInput.total}
+                        onChange={(e) => setCaseInput({ ...caseInput, total: e.target.value })}
+                        className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        placeholder="Valor total (denominador)"
+                      />
+                    </div>
+                  </div>
+
+                  {caseInput.casos && caseInput.total && parseFloat(caseInput.total) > 0 && (
+                    <div className="bg-blue-50 p-3 rounded-lg text-center">
+                      <p className="text-sm text-gray-600">Resultado (se guardará como logrado):</p>
+                      <p className="text-lg font-bold text-blue-600">
+                        {((parseFloat(caseInput.casos) / parseFloat(caseInput.total)) * 100).toFixed(2)}%
+                      </p>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Porcentaje de cumplimiento
+                    </label>
+                    <div className="text-xs text-gray-500 mb-2">
+                      Ingresa directamente el porcentaje logrado (0-100)
+                    </div>
+                    <div className="relative">
+                      <input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        max="100"
+                        value={directPercentage}
+                        onChange={(e) => setDirectPercentage(e.target.value)}
+                        className="w-full border border-gray-300 rounded-lg px-3 py-2 pr-8 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        placeholder="Ej: 85.5"
+                      />
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500">%</span>
+                    </div>
+                  </div>
+                  {directPercentage && (
+                    <div className="bg-blue-50 p-3 rounded-lg text-center">
+                      <p className="text-sm text-gray-600">Se guardará como:</p>
+                      <p className="text-lg font-bold text-blue-600">
+                        {parseFloat(directPercentage).toFixed(2)}%
+                      </p>
+                    </div>
+                  )}
+                </>
               )}
 
               <div className="flex gap-3">
