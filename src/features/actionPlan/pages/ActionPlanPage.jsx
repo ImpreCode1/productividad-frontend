@@ -201,7 +201,7 @@ export default function ActionPlanPage() {
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Razón del no cumplimiento
                 </label>
-                <div className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm bg-gray-50 min-h-[60px]">
+                <div className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm bg-gray-50 min-h-15">
                   {selectedPlan.reason_not_met || "No especificada"}
                 </div>
               </div>
@@ -210,7 +210,7 @@ export default function ActionPlanPage() {
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Plan de Acción
                 </label>
-                <div className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm bg-gray-50 min-h-[80px] whitespace-pre-wrap">
+                <div className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm bg-gray-50 min-h-20 whitespace-pre-wrap">
                   {selectedPlan.action_plan}
                 </div>
               </div>
