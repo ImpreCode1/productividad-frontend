@@ -102,24 +102,19 @@ export function ImportExcelModal({ isOpen, onClose }) {
 
         <div className="bg-gray-50 rounded-lg p-4">
           <p className="text-xs font-medium text-gray-700 mb-2">
-            Formato esperado del archivo:
+            Columnas requeridas en el Excel:
           </p>
           <div className="text-xs text-gray-500 space-y-1">
-            <p>
-              <strong>name</strong>: Nombre completo
-            </p>
-            <p>
-              <strong>email</strong>: Correo electrónico
-            </p>
-            <p>
-              <strong>document_number</strong>: Número de documento
-            </p>
-            <p>
-              <strong>position_name</strong>: Cargo
-            </p>
-            <p>
-              <strong>area</strong>: Área
-            </p>
+            <p><strong>C.C. No.</strong>: Número de documento</p>
+            <p><strong>NOMBRE COLABORADOR</strong>: Nombre completo</p>
+            <p><strong>CORREO</strong>: Correo electrónico</p>
+            <p><strong>CARGO</strong>: Cargo/Puesto</p>
+            <p><strong>AREA</strong>: Área</p>
+            <p><strong>SUBAREA/DIVISION</strong>: Subárea o División</p>
+            <p><strong>JEFE DIRECTO</strong>: Nombre del jefe (opcional)</p>
+            <p><strong>FECHA DE INGRESO</strong>: Fecha de ingreso (opcional)</p>
+            <p><strong>TIPO DE CONTRATO</strong>: Tipo de contrato (opcional)</p>
+            <p><strong>TIPO DE SALARIO</strong>: Tipo de salario (opcional)</p>
           </div>
         </div>
 
