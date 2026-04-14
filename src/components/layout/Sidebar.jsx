@@ -84,7 +84,7 @@ export default function Sidebar() {
   };
 
   return (
-    <aside className="w-64 bg-gray-900 text-white min-h-screen p-4 flex flex-col">
+    <aside className="w-64 bg-gray-900 text-white h-full flex-shrink-0 p-4 flex flex-col overflow-y-auto">
       <div className="mb-8">
         <h1 className="text-xl font-bold tracking-wide">Productividad</h1>
         <p className="text-xs text-gray-400">Sistema de Evaluación</p>

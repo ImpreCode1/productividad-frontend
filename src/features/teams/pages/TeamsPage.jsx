@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { Users, UserPlus, ArrowRight, Briefcase, Search } from "lucide-react";
+import { Users, UserPlus, ArrowRight, Briefcase, Search, ChevronDown, ChevronRight } from "lucide-react";
 import { useAllTeams } from "../hooks/useTeams";
 import { useUsers } from "../../users/hooks/useUsers";
 import { useAssignLeader } from "../../users/hooks/useUsers";
@@ -13,6 +13,7 @@ export default function TeamsPage() {
   const [showMoveModal, setShowMoveModal] = useState(false);
   const [selectedMember, setSelectedMember] = useState(null);
   const [search, setSearch] = useState("");
+  const [expandedTeams, setExpandedTeams] = useState({});
 
   const availableLeaders = users?.filter((u) => u.is_active) || [];
 
@@ -20,22 +21,45 @@ export default function TeamsPage() {
     if (!search || !teams) return teams;
     
     const searchLower = search.toLowerCase();
-    return teams.map(team => ({
-      ...team,
-      members: team.members.filter(
-        m => m.name?.toLowerCase().includes(searchLower) ||
-             m.email?.toLowerCase().includes(searchLower)
+    
+    const isLeaderSearch = teams.some(team => 
+      team.leader?.name?.toLowerCase().includes(searchLower)
+    );
+    
+    return teams.map(team => {
+      if (isLeaderSearch) {
+        if (team.leader?.name?.toLowerCase().includes(searchLower)) {
+          return team;
+        }
+        return null;
+      }
+      
+      return {
+        ...team,
+        members: team.members.filter(
+          m => m.name?.toLowerCase().includes(searchLower) ||
+               m.email?.toLowerCase().includes(searchLower)
+        )
+      };
+    }).filter(team => 
+      team && (
+        team.is_unassigned || 
+        team.leader?.name?.toLowerCase().includes(searchLower) ||
+        team.members.length > 0
       )
-    })).filter(team => 
-      team.is_unassigned || 
-      team.leader?.name?.toLowerCase().includes(searchLower) ||
-      team.members.length > 0
     );
   }, [teams, search]);
 
   const handleMoveMember = (member) => {
     setSelectedMember(member);
     setShowMoveModal(true);
+  };
+
+  const toggleTeam = (teamKey) => {
+    setExpandedTeams(prev => ({
+      ...prev,
+      [teamKey]: !prev[teamKey]
+    }));
   };
 
   const handleAssignNewLeader = async (leaderId) => {
@@ -89,14 +113,31 @@ export default function TeamsPage() {
         </div>
       </div>
 
-      <div className="grid gap-6">
-        {filteredTeams?.map((team, index) => (
-          <div
-            key={team.is_unassigned ? "unassigned" : team.leader?.id || index}
-            className="bg-white rounded-lg shadow overflow-hidden"
-          >
-            <div className="px-6 py-4 bg-gray-50 border-b border-gray-200 flex items-center justify-between">
-              <div className="flex items-center gap-3">
+      <div className="grid gap-4">
+        {filteredTeams?.map((team, index) => {
+          const teamKey = team.is_unassigned ? "unassigned" : team.leader?.id || index;
+          const isExpanded = expandedTeams[teamKey] === true;
+          
+          const handleClick = (e) => {
+            e.stopPropagation();
+            toggleTeam(teamKey);
+          };
+          
+          return (
+            <div
+              key={teamKey}
+              className="bg-white rounded-lg shadow overflow-hidden"
+            >
+              <div 
+                className="px-6 py-4 bg-gray-50 border-b border-gray-200 flex items-center justify-between cursor-pointer hover:bg-gray-100"
+                onClick={handleClick}
+              >
+                {isExpanded ? (
+                  <ChevronDown className="h-5 w-5 text-gray-400 mr-3" />
+                ) : (
+                  <ChevronRight className="h-5 w-5 text-gray-400 mr-3" />
+                )}
+                <div className="flex items-center gap-3 flex-1">
                 {team.is_unassigned ? (
                   <>
                     <div className="h-10 w-10 bg-gray-200 rounded-full flex items-center justify-center">
@@ -130,7 +171,7 @@ export default function TeamsPage() {
               </div>
             </div>
 
-            {team.members?.length > 0 ? (
+            {isExpanded && team.members?.length > 0 ? (
               <div className="p-6">
                 <div className="grid gap-3">
                   {team.members.map((member) => (
@@ -162,15 +203,16 @@ export default function TeamsPage() {
                   ))}
                 </div>
               </div>
-            ) : (
+            ) : isExpanded ? (
               <div className="p-6 text-center text-gray-500">
                 {team.is_unassigned
                   ? "No hay usuarios sin líder asignado"
                   : "Este equipo no tiene miembros"}
               </div>
-            )}
+            ) : null}
           </div>
-        ))}
+          );
+        })}
       </div>
 
       <Modal
