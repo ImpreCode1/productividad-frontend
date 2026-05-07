@@ -60,6 +60,9 @@ function UserForm({ user, users, roles, onClose, assignLeaderMutation, assignRol
           position_name: localUser.position_name,
           area: localUser.area,
           subarea: localUser.subarea,
+          direccion: localUser.direccion,
+          linea: localUser.linea,
+          numero_linea: localUser.numero_linea,
         },
       });
       onClose();
@@ -197,7 +200,7 @@ function UserForm({ user, users, roles, onClose, assignLeaderMutation, assignRol
             </div>
             <div className="col-span-2">
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Área
+                Vicepresidencia
               </label>
               <input
                 type="text"
@@ -208,12 +211,45 @@ function UserForm({ user, users, roles, onClose, assignLeaderMutation, assignRol
             </div>
             <div className="col-span-2">
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Subárea
+                Área
               </label>
               <input
                 type="text"
                 value={localUser?.subarea || ""}
                 onChange={(e) => updateField("subarea", e.target.value)}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              />
+            </div>
+            <div className="col-span-2">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Dirección
+              </label>
+              <input
+                type="text"
+                value={localUser?.direccion || ""}
+                onChange={(e) => updateField("direccion", e.target.value)}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              />
+            </div>
+            <div className="col-span-2">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Línea
+              </label>
+              <input
+                type="text"
+                value={localUser?.linea || ""}
+                onChange={(e) => updateField("linea", e.target.value)}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              />
+            </div>
+            <div className="col-span-2">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                # Línea
+              </label>
+              <input
+                type="text"
+                value={localUser?.numero_linea || ""}
+                onChange={(e) => updateField("numero_linea", e.target.value)}
                 className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               />
             </div>

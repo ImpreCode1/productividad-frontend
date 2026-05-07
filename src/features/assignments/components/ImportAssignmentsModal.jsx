@@ -3,7 +3,22 @@ import { Upload, FileSpreadsheet, AlertCircle, CheckCircle } from "lucide-react"
 import { Modal } from "../../../components/ui/Modal";
 import { useImportAssignments } from "../hooks/useAssignments";
 
-export function ImportAssignmentsModal({ isOpen, onClose, year }) {
+const MONTHS = [
+  { value: 1, label: "Enero" },
+  { value: 2, label: "Febrero" },
+  { value: 3, label: "Marzo" },
+  { value: 4, label: "Abril" },
+  { value: 5, label: "Mayo" },
+  { value: 6, label: "Junio" },
+  { value: 7, label: "Julio" },
+  { value: 8, label: "Agosto" },
+  { value: 9, label: "Septiembre" },
+  { value: 10, label: "Octubre" },
+  { value: 11, label: "Noviembre" },
+  { value: 12, label: "Diciembre" },
+];
+
+export function ImportAssignmentsModal({ isOpen, onClose, year, month }) {
   const [file, setFile] = useState(null);
   const [preview, setPreview] = useState(null);
   const [error, setError] = useState("");
@@ -35,7 +50,7 @@ export function ImportAssignmentsModal({ isOpen, onClose, year }) {
     if (!file) return;
 
     try {
-      await importMutation.mutateAsync({ file, year });
+      await importMutation.mutateAsync({ file, year, month });
       setFile(null);
       setPreview(null);
       onClose();
@@ -98,12 +113,17 @@ export function ImportAssignmentsModal({ isOpen, onClose, year }) {
 
         <div className="bg-gray-50 rounded-lg p-4">
           <p className="text-xs font-medium text-gray-700 mb-2">
-            Formato esperado del archivo:
+            Columnas requeridas en el Excel:
           </p>
           <div className="text-xs text-gray-500 space-y-1">
-            <p><strong>Responsable</strong>: Correo del usuario</p>
+            <p><strong>Responsable</strong>: Nombre del usuario</p>
             <p><strong>Nombre del Indicador</strong>: Nombre del indicador</p>
-            <p><strong>Formula del Indicador</strong>: Fórmula (opcional)</p>
+            <p><strong>Vicepresidencia</strong>: área (opcional)</p>
+            <p><strong>Área</strong>: subarea (opcional)</p>
+            <p><strong>Dirección</strong>: dirección (opcional)</p>
+            <p><strong>Linea</strong>: línea (opcional)</p>
+            <p><strong>#Linea</strong>: número línea (opcional)</p>
+            <p><strong>Cargo</strong>: position_name (opcional)</p>
             <p><strong>Meta</strong>: Valor objetivo</p>
             <p><strong>Peso</strong>: Porcentaje (0-100)</p>
             <p><strong>Frecuencia</strong>: MONTHLY, QUARTERLY, etc.</p>

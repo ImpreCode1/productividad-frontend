@@ -1,11 +1,11 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import * as assignmentsApi from "../../../api/assignments.api";
 
-export function useAssignments(year) {
+export function useAssignments(year, month) {
   return useQuery({
-    queryKey: ["assignments", year],
+    queryKey: ["assignments", year, month],
     queryFn: async () => {
-      const { data } = await assignmentsApi.getAssignments(year);
+      const { data } = await assignmentsApi.getAssignments(year, month);
       return data.assignments;
     },
     enabled: !!year,
@@ -49,7 +49,18 @@ export function useImportAssignments() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ file, year }) => assignmentsApi.importAssignmentsExcel(file, year),
+    mutationFn: ({ file, year, month }) => assignmentsApi.importAssignmentsExcel(file, year, month),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["assignments"] });
+    },
+  });
+}
+
+export function useCloneFromPreviousMonth() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ year, month }) => assignmentsApi.cloneFromPreviousMonth(year, month),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["assignments"] });
     },

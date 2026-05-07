@@ -9,6 +9,9 @@ export function CreateUserModal({ isOpen, onClose, onSave }) {
     position_name: "",
     area: "",
     subarea: "",
+    direccion: "",
+    linea: "",
+    numero_linea: "",
   });
 
   const [loading, setLoading] = useState(false);
@@ -34,6 +37,9 @@ export function CreateUserModal({ isOpen, onClose, onSave }) {
         position_name: "",
         area: "",
         subarea: "",
+        direccion: "",
+        linea: "",
+        numero_linea: "",
       });
     } catch (err) {
       const message = err.response?.data?.detail || "Error al crear usuario";
@@ -110,25 +116,64 @@ export function CreateUserModal({ isOpen, onClose, onSave }) {
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
-            Área
+            Vicepresidencia
           </label>
           <input
             type="text"
             value={formData.area}
             onChange={(e) => handleChange("area", e.target.value)}
             className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            placeholder="Ventas, IT, Recursos Humanos, etc."
+            placeholder="Opcional"
           />
         </div>
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
-            Subárea
+            Área
           </label>
           <input
             type="text"
             value={formData.subarea}
             onChange={(e) => handleChange("subarea", e.target.value)}
+            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            placeholder="Opcional"
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Dirección
+          </label>
+          <input
+            type="text"
+            value={formData.direccion}
+            onChange={(e) => handleChange("direccion", e.target.value)}
+            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            placeholder="Opcional"
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Línea
+          </label>
+          <input
+            type="text"
+            value={formData.linea}
+            onChange={(e) => handleChange("linea", e.target.value)}
+            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            placeholder="Opcional"
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            # Línea
+          </label>
+          <input
+            type="text"
+            value={formData.numero_linea}
+            onChange={(e) => handleChange("numero_linea", e.target.value)}
             className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             placeholder="Opcional"
           />

@@ -1,5 +1,10 @@
 import { Target, User, Edit, Trash2 } from "lucide-react";
 
+const MONTHS = [
+  "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
+  "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"
+];
+
 export default function AssignmentList({ assignments, users, onEdit, onDelete }) {
   const getUserName = (userId) => {
     const user = users?.find((u) => u.id === userId);
@@ -14,7 +19,7 @@ export default function AssignmentList({ assignments, users, onEdit, onDelete })
           Sin Indicadores
         </h3>
         <p className="text-gray-500">
-          No hay indicadores asignados para el año seleccionado
+          No hay indicadores asignados para el período seleccionado
         </p>
       </div>
     );
@@ -33,7 +38,7 @@ export default function AssignmentList({ assignments, users, onEdit, onDelete })
                 Indicador
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Año
+                Mes
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Meta
@@ -67,12 +72,12 @@ export default function AssignmentList({ assignments, users, onEdit, onDelete })
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <span className="text-sm text-gray-500">
-                    {assignment.year}
+                    {MONTHS[assignment.month - 1] || assignment.month}/{assignment.year}
                   </span>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <span className="text-sm text-gray-500">
-                    {assignment.target_value}
+                    {assignment.target_value}%
                   </span>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
