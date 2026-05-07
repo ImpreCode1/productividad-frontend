@@ -27,7 +27,7 @@ export const importAssignmentsExcel = (file, year, month = null) => {
   const formData = new FormData();
   formData.append("file", file);
   formData.append("year", year);
-  if (month) formData.append("month", month);
+  if (month != null && month !== undefined) formData.append("month", month);
 
   return api.post("/assignments/import-excel", formData, {
     headers: { "Content-Type": "multipart/form-data" },
