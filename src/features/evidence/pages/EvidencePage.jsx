@@ -22,11 +22,17 @@ export default function EvidencePage() {
     queryFn: () => trackingApi.getMyTracking(currentYear),
   });
 
+  const { data: evidencesData, refetch: refetchEvidences } = useQuery({
+    queryKey: ["evidencesByMonth", currentYear, selectedMonth],
+    queryFn: () => evidenceApi.getEvidencesByMonth(currentYear, selectedMonth),
+    enabled: !!selectedMonth,
+  });
+
   const uploadMutation = useMutation({
     mutationFn: ({ year, month, file }) => evidenceApi.uploadEvidenceToMonth(year, month, null, file),
     onSuccess: () => {
       setUploadFile(null);
-      queryClient.invalidateQueries(["myTracking"]);
+      refetchEvidences();
     },
     onError: (error) => {
       const message = error.response?.data?.detail || "Error al subir evidencia";
@@ -38,7 +44,7 @@ export default function EvidencePage() {
   const deleteMutation = useMutation({
     mutationFn: (evidenceId) => evidenceApi.deleteEvidence(evidenceId),
     onSuccess: () => {
-      queryClient.invalidateQueries(["myTracking"]);
+      refetchEvidences();
     },
     onError: (error) => {
       const message = error.response?.data?.detail || "Error al eliminar evidencia";
@@ -54,6 +60,7 @@ export default function EvidencePage() {
   };
 
   const trackingList = trackingData?.data?.tracking || [];
+  const evidencesList = evidencesData?.data?.evidences || [];
 
   const getFileIcon = (path) => {
     if (!path) return <File size={16} />;
@@ -63,18 +70,7 @@ export default function EvidencePage() {
     return <File size={16} />;
   };
 
-  const getEvidencesForMonth = (month) => {
-    const monthTrackings = trackingList.filter(t => t.month === month);
-    const allEvidence = [];
-    monthTrackings.forEach(t => {
-      if (t.evidences) {
-        t.evidences.forEach(e => allEvidence.push(e));
-      }
-    });
-    return allEvidence;
-  };
-
-  const currentMonthEvidence = getEvidencesForMonth(selectedMonth);
+  const currentMonthEvidence = evidencesList;
 
   return (
     <div className="space-y-6">

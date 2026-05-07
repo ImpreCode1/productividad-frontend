@@ -26,12 +26,12 @@ export default function TeamDashboard() {
   const [actionPlanModal, setActionPlanModal] = useState({ open: false, month: null, indicator: null, actionPlanId: null });
   const [actionPlanData, setActionPlanData] = useState({ reason_not_met: "", action_plan: "" });
   const [actionPlanLoading, setActionPlanLoading] = useState(false);
-  const [evidenceModal, setEvidenceModal] = useState({ open: false, trackingId: null, monthName: "", indicatorName: "" });
+  const [evidenceModal, setEvidenceModal] = useState({ open: false, userId: null, month: null, monthName: "", indicatorName: "" });
 
   const { data: evidenceData, refetch: refetchEvidence, isLoading: evidenceLoading, error: evidenceError } = useQuery({
-    queryKey: ["evidence", evidenceModal.trackingId],
-    queryFn: () => evidenceModal.trackingId ? evidenceApi.getEvidence(evidenceModal.trackingId) : Promise.resolve({ data: { evidence: [] } }),
-    enabled: !!evidenceModal.trackingId,
+    queryKey: ["evidenceByMonth", evidenceModal.userId, year, evidenceModal.month],
+    queryFn: () => evidenceModal.userId && evidenceModal.month ? evidenceApi.getEvidencesByMonth(year, evidenceModal.month, evidenceModal.userId) : Promise.resolve({ data: { evidences: [] } }),
+    enabled: !!evidenceModal.userId && !!evidenceModal.month,
   });
 
   const closeMutation = useMutation({
@@ -46,15 +46,11 @@ export default function TeamDashboard() {
     },
   });
 
-  const handleOpenEvidenceModal = (month, indicator) => {
-    // console.log("Opening evidence modal - month:", month, "indicator:", indicator);
-    if (!month.tracking_id) {
-      alert("Error: ID de tracking no disponible");
-      return;
-    }
+  const handleOpenEvidenceModal = (month, indicator, userId) => {
     setEvidenceModal({
       open: true,
-      trackingId: month.tracking_id,
+      userId: userId,
+      month: month.month,
       monthName: getMonthName(month.month),
       indicatorName: indicator.indicator_name
     });
@@ -438,7 +434,7 @@ export default function TeamDashboard() {
                                         </td>
                                         <td className="px-4 py-2 text-center">
                                           <button
-                                            onClick={() => handleOpenEvidenceModal(month, indicator)}
+                                            onClick={() => handleOpenEvidenceModal(month, indicator, member.user_id)}
                                             className={`inline-flex items-center justify-center p-2 rounded-lg transition-colors ${
                                               month.evidence_count > 0
                                                 ? "text-green-600 hover:bg-green-50"
@@ -741,7 +737,7 @@ export default function TeamDashboard() {
                 </p>
               </div>
               <button
-                onClick={() => setEvidenceModal({ open: false, trackingId: null, monthName: "", indicatorName: "" })}
+                onClick={() => setEvidenceModal({ open: false, userId: null, month: null, monthName: "", indicatorName: "" })}
                 className="text-gray-400 hover:text-gray-600"
               >
                 <X className="h-5 w-5" />
@@ -755,15 +751,15 @@ export default function TeamDashboard() {
                   <p className="text-red-500 font-medium">Error al cargar evidencias</p>
                   <p className="text-xs text-gray-500 mt-1">{evidenceError.response?.data?.detail || evidenceError.message}</p>
                 </div>
-              ) : !evidenceData?.data?.evidence || evidenceData.data.evidence.length === 0 ? (
+              ) : !evidenceData?.data?.evidences || evidenceData.data.evidences.length === 0 ? (
                 <div className="text-center py-8">
                   <Paperclip className="h-8 w-8 mx-auto text-gray-300 mb-2" />
-                  <p className="text-gray-500">No hay evidencias para este seguimiento</p>
+                  <p className="text-gray-500">No hay evidencias para este mes</p>
                   <p className="text-xs text-gray-400 mt-2">El empleado no ha subido ningún archivo</p>
                 </div>
               ) : (
                 <div className="space-y-2">
-                  {evidenceData?.data?.evidence?.map((ev) => (
+                  {evidenceData?.data?.evidences?.map((ev) => (
                     <div
                       key={ev.id}
                       className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
@@ -792,7 +788,7 @@ export default function TeamDashboard() {
             </div>
             <div className="p-4 border-t">
               <button
-                onClick={() => setEvidenceModal({ open: false, trackingId: null, monthName: "", indicatorName: "" })}
+                onClick={() => setEvidenceModal({ open: false, userId: null, month: null, monthName: "", indicatorName: "" })}
                 className="w-full px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700"
               >
                 Cerrar
