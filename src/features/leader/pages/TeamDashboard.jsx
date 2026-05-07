@@ -5,6 +5,7 @@ import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import * as trackingApi from "../../../api/tracking.api";
 import * as actionPlanApi from "../../../api/actionPlan.api";
 import * as evidenceApi from "../../../api/evidence.api";
+import api from "../../../api/client";
 
 const backendUrl = import.meta.env.VITE_BACKEND_URL || "";
 
@@ -18,7 +19,7 @@ export default function TeamDashboard() {
 
   const [expandedMembers, setExpandedMembers] = useState({});
   const [expandedIndicators, setExpandedIndicators] = useState({});
-  const [closeModal, setCloseModal] = useState({ open: false, month: null, indicator: null });
+  const [closeModal, setCloseModal] = useState({ open: false, month: null, indicator: null, assignmentId: null });
   const [caseInput, setCaseInput] = useState({ casos: "", total: "" });
   const [inputMode, setInputMode] = useState("formula");
   const [directPercentage, setDirectPercentage] = useState("");
@@ -73,16 +74,16 @@ export default function TeamDashboard() {
     }));
   };
 
-  const handleOpenCloseModal = (month, indicator) => {
-    setCloseModal({ open: true, month, indicator });
+  const handleOpenCloseModal = (month, indicator, assignmentId) => {
+    setCloseModal({ open: true, month, indicator, assignmentId });
     setCaseInput({ casos: "", total: "" });
     setDirectPercentage("");
     setInputMode("formula");
   };
 
   const handleClose = async () => {
-    if (!closeModal.month?.tracking_id) {
-      alert("Error: ID de tracking no disponible. Refresca la página.");
+    if (!closeModal.month?.tracking_id && !closeModal.assignmentId) {
+      alert("Error: No se puede procesar. Refresca la página.");
       return;
     }
 
@@ -122,11 +123,25 @@ export default function TeamDashboard() {
     const isMet = percentage >= targetValue;
 
     try {
-      await closeMutation.mutateAsync({
-        trackingId: closeModal.month.tracking_id,
-        achievedValue: finalValue,
-        achievedTotal: finalTotal,
-      });
+      let newTrackingId = closeModal.month?.tracking_id;
+
+      if (newTrackingId) {
+        await closeMutation.mutateAsync({
+          trackingId: newTrackingId,
+          achievedValue: finalValue,
+          achievedTotal: finalTotal,
+        });
+      } else {
+        const response = await api.patch(
+          `/tracking/assignment/${closeModal.assignmentId}/close`,
+          { achieved_value: finalValue, achieved_total: finalTotal }
+        );
+        newTrackingId = response.data.id;
+      }
+
+      queryClient.invalidateQueries({ queryKey: ["team", "dashboard", year] });
+
+      const updatedMonth = { ...closeModal.month, tracking_id: newTrackingId };
 
       if (isMet) {
         setActionPlanData({
@@ -135,7 +150,7 @@ export default function TeamDashboard() {
         });
         setActionPlanModal({ 
           open: true, 
-          month: closeModal.month, 
+          month: updatedMonth, 
           indicator: closeModal.indicator,
           actionPlanId: null 
         });
@@ -143,11 +158,15 @@ export default function TeamDashboard() {
         setActionPlanData({ reason_not_met: "", action_plan: "" });
         setActionPlanModal({ 
           open: true, 
-          month: closeModal.month, 
+          month: updatedMonth, 
           indicator: closeModal.indicator,
           actionPlanId: null 
         });
       }
+      setCloseModal({ open: false, month: null, indicator: null, assignmentId: null });
+      setCaseInput({ casos: "", total: "" });
+      setDirectPercentage("");
+      setInputMode("formula");
     } catch (error) {
       alert(error.response?.data?.detail || "Error al cerrar evaluación");
     }
@@ -239,8 +258,8 @@ export default function TeamDashboard() {
     );
   };
 
-  const canRegister = (month) => !month.is_closed && (!month.status || month.status === "PENDING");
-  const canClose = (month) => !month.is_closed && month.status === "COMPLETED";
+  const canRegister = (month) => !month.is_closed && (!month.status || month.status === "PENDING") && !month.tracking_id;
+  const canClose = (month) => !month.is_closed && month.status === "COMPLETED" && !!month.tracking_id;
 
   return (
     <div className="space-y-6">
@@ -436,7 +455,7 @@ export default function TeamDashboard() {
                                         <td className="px-4 py-2 text-right">
                                           {canRegister(month) && (
                                             <button
-                                              onClick={() => handleOpenCloseModal(month, indicator)}
+                                              onClick={() => handleOpenCloseModal(month, indicator, indicator.id)}
                                               className="text-xs bg-green-600 text-white px-2 py-1 rounded hover:bg-green-700 mr-1"
                                             >
                                               Registrar
@@ -444,7 +463,7 @@ export default function TeamDashboard() {
                                           )}
                                           {canClose(month) && (
                                             <button
-                                              onClick={() => handleOpenCloseModal(month, indicator)}
+                                              onClick={() => handleOpenCloseModal(month, indicator, indicator.id)}
                                               className="text-xs bg-blue-600 text-white px-2 py-1 rounded hover:bg-blue-700 mr-1"
                                             >
                                               Cerrar
@@ -489,7 +508,7 @@ export default function TeamDashboard() {
                 Registrar Avance
               </h3>
               <button
-                onClick={() => setCloseModal({ open: false, month: null, indicator: null })}
+                onClick={() => setCloseModal({ open: false, month: null, indicator: null, assignmentId: null })}
                 className="text-gray-400 hover:text-gray-600"
               >
                 <X className="h-5 w-5" />
@@ -619,7 +638,7 @@ export default function TeamDashboard() {
 
               <div className="flex gap-3">
                 <button
-                  onClick={() => setCloseModal({ open: false, month: null, indicator: null })}
+                  onClick={() => setCloseModal({ open: false, month: null, indicator: null, assignmentId: null })}
                   className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
                 >
                   Cancelar
