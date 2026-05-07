@@ -11,11 +11,15 @@ export function useTeamMembers() {
   });
 }
 
-export function useTeamDashboard(year) {
+export function useTeamDashboard(year, month = null) {
   return useQuery({
-    queryKey: ["team", "dashboard", year],
+    queryKey: ["team", "dashboard", year, month],
     queryFn: async () => {
-      const { data } = await api.get(`/dashboard/team?year=${year}`);
+      const params = new URLSearchParams({ year: year.toString() });
+      if (month && month !== 0) {
+        params.append("month", month.toString());
+      }
+      const { data } = await api.get(`/dashboard/team?${params}`);
       return data;
     },
     enabled: !!year,

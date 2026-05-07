@@ -10,8 +10,10 @@ const backendUrl = import.meta.env.VITE_BACKEND_URL || "";
 
 export default function TeamDashboard() {
   const currentYear = new Date().getFullYear();
+  const currentMonth = new Date().getMonth() + 1;
   const [year, setYear] = useState(currentYear);
-  const { data: dashboard, isLoading } = useTeamDashboard(year);
+  const [month, setMonth] = useState(currentMonth);
+  const { data: dashboard, isLoading } = useTeamDashboard(year, month);
   const queryClient = useQueryClient();
 
   const [expandedMembers, setExpandedMembers] = useState({});
@@ -253,15 +255,37 @@ export default function TeamDashboard() {
           </p>
         </div>
 
-        <select
-          value={year}
-          onChange={(e) => setYear(Number(e.target.value))}
-          className="border border-gray-300 rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-        >
-          <option value={currentYear}>{currentYear}</option>
-          <option value={currentYear - 1}>{currentYear - 1}</option>
-          <option value={currentYear - 2}>{currentYear - 2}</option>
-        </select>
+        <div className="flex items-center gap-2">
+          <select
+            value={month}
+            onChange={(e) => setMonth(Number(e.target.value))}
+            className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          >
+            <option value={0}>Todos los meses</option>
+            <option value={1}>Enero</option>
+            <option value={2}>Febrero</option>
+            <option value={3}>Marzo</option>
+            <option value={4}>Abril</option>
+            <option value={5}>Mayo</option>
+            <option value={6}>Junio</option>
+            <option value={7}>Julio</option>
+            <option value={8}>Agosto</option>
+            <option value={9}>Septiembre</option>
+            <option value={10}>Octubre</option>
+            <option value={11}>Noviembre</option>
+            <option value={12}>Diciembre</option>
+          </select>
+
+          <select
+            value={year}
+            onChange={(e) => { setYear(Number(e.target.value)); setMonth(0); }}
+            className="border border-gray-300 rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          >
+            <option value={currentYear}>{currentYear}</option>
+            <option value={currentYear - 1}>{currentYear - 1}</option>
+            <option value={currentYear - 2}>{currentYear - 2}</option>
+          </select>
+        </div>
       </div>
 
       {isLoading ? (
