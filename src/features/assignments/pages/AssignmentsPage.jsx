@@ -39,11 +39,18 @@ export default function AssignmentsPage() {
   const deleteMutation = useDeleteAssignment();
   const cloneMutation = useCloneFromPreviousMonth();
 
-  const filteredAssignments = assignments?.filter(
-    (a) =>
-      !search ||
-      a.indicator_name?.toLowerCase().includes(search.toLowerCase())
-  );
+  const filteredAssignments = assignments?.filter((a) => {
+    if (!search) return true;
+    const searchLower = search.toLowerCase();
+    
+    const user = users?.find((u) => u.id === a.user_id);
+    const userName = user?.name?.toLowerCase() || "";
+    
+    return (
+      a.indicator_name?.toLowerCase().includes(searchLower) ||
+      userName.includes(searchLower)
+    );
+  });
 
   const handleSave = async (data) => {
     if (editAssignment) {
@@ -160,6 +167,10 @@ export default function AssignmentsPage() {
       {isLoading ? (
         <div className="flex justify-center py-12">
           <div className="text-gray-500">Cargando indicadores...</div>
+        </div>
+      ) : filteredAssignments?.length === 0 ? (
+        <div className="bg-white rounded-lg shadow p-8 text-center">
+          <p className="text-gray-500">No hay indicadores para este período</p>
         </div>
       ) : (
         <AssignmentList

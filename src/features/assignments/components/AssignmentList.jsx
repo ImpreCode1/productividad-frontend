@@ -1,120 +1,99 @@
 import { Target, User, Edit, Trash2 } from "lucide-react";
 
-const MONTHS = [
-  "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
-  "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"
-];
+const MONTHS = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
 
 export default function AssignmentList({ assignments, users, onEdit, onDelete }) {
   const getUserName = (userId) => {
     const user = users?.find((u) => u.id === userId);
-    return user?.name || "Usuario no encontrado";
+    return user?.name || "Sin usuario";
   };
 
   if (!assignments || assignments.length === 0) {
     return (
-      <div className="bg-white rounded-lg shadow p-8 text-center">
-        <Target className="h-12 w-12 mx-auto text-gray-400 mb-4" />
-        <h3 className="text-lg font-medium text-gray-900 mb-2">
-          Sin Indicadores
-        </h3>
-        <p className="text-gray-500">
-          No hay indicadores asignados para el período seleccionado
-        </p>
+      <div className="bg-white rounded-lg shadow-md p-10 text-center">
+        <Target className="h-14 w-14 mx-auto text-gray-300 mb-3" />
+        <h3 className="text-lg font-semibold text-gray-700">Sin Indicadores</h3>
+        <p className="text-gray-400 text-sm mt-1">No hay indicadores para este período</p>
       </div>
     );
   }
 
   return (
-    <div className="bg-white rounded-lg shadow overflow-hidden">
-      <div className="overflow-x-auto">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Usuario
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Indicador
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Mes
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Meta
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Peso
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Estado
-              </th>
-              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Acciones
-              </th>
-            </tr>
-          </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
-            {assignments.map((assignment) => (
-              <tr key={assignment.id} className="hover:bg-gray-50">
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="flex items-center">
-                    <User className="h-4 w-4 text-gray-400 mr-2" />
-                    <span className="text-sm text-gray-900">
-                      {getUserName(assignment.user_id)}
-                    </span>
+    <div className="bg-white rounded-lg shadow-md overflow-x-auto">
+      <table className="min-w-full text-sm table-fixed">
+        <thead className="bg-gradient-to-r from-gray-50 to-gray-100 border-b border-gray-200">
+          <tr>
+            <th className="px-3 py-2.5 text-left text-xs font-semibold text-gray-600 tracking-wide w-48">Usuario</th>
+            <th className="px-3 py-2.5 text-left text-xs font-semibold text-gray-600 tracking-wide w-56">Indicador</th>
+            <th className="px-3 py-2.5 text-center text-xs font-semibold text-gray-600 tracking-wide w-16">Mes</th>
+            <th className="px-3 py-2.5 text-center text-xs font-semibold text-gray-600 tracking-wide w-14">Meta</th>
+            <th className="px-3 py-2.5 text-center text-xs font-semibold text-gray-600 tracking-wide w-14">Peso</th>
+            <th className="px-3 py-2.5 text-center text-xs font-semibold text-gray-600 tracking-wide w-20">Estado</th>
+            <th className="px-3 py-2.5 text-right text-xs font-semibold text-gray-600 tracking-wide w-20"></th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-gray-100">
+          {assignments.map((a) => (
+            <tr key={a.id} className="hover:bg-blue-50/50 transition-colors duration-150">
+              <td className="px-3 py-2.5">
+                <div className="flex items-center gap-2">
+                  <div className="w-7 h-7 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
+                    <User className="h-3.5 w-3.5 text-blue-600" />
                   </div>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <span className="text-sm font-medium text-gray-900">
-                    {assignment.indicator_name}
+                  <span className="text-gray-700 font-medium" title={getUserName(a.user_id)}>
+                    {getUserName(a.user_id)}
                   </span>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <span className="text-sm text-gray-500">
-                    {MONTHS[assignment.month - 1] || assignment.month}/{assignment.year}
-                  </span>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <span className="text-sm text-gray-500">
-                    {assignment.target_value}%
-                  </span>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <span className="text-sm text-gray-500">
-                    {assignment.weight}%
-                  </span>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <span
-                    className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                      assignment.is_active
-                        ? "bg-green-100 text-green-800"
-                        : "bg-gray-100 text-gray-800"
-                    }`}
+                </div>
+              </td>
+              <td className="px-3 py-2.5">
+                <span className="text-gray-700 font-medium" title={a.indicator_name}>
+                  {a.indicator_name}
+                </span>
+              </td>
+              <td className="px-3 py-2.5 text-center">
+                <span className="inline-flex items-center px-2 py-0.5 bg-blue-50 text-blue-700 text-xs font-medium rounded">
+                  {MONTHS[a.month - 1]}
+                </span>
+              </td>
+              <td className="px-3 py-2.5 text-center">
+                <span className="text-gray-600 font-semibold">{a.target_value}</span>
+                <span className="text-gray-400 text-xs">%</span>
+              </td>
+              <td className="px-3 py-2.5 text-center">
+                <span className="text-gray-600 font-semibold">{a.weight}</span>
+                <span className="text-gray-400 text-xs">%</span>
+              </td>
+              <td className="px-3 py-2.5 text-center">
+                <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold ${
+                  a.is_active 
+                    ? "bg-emerald-100 text-emerald-700" 
+                    : "bg-gray-100 text-gray-600"
+                }`}>
+                  {a.is_active ? "Activo" : "Inactivo"}
+                </span>
+              </td>
+              <td className="px-3 py-2.5 text-right">
+                <div className="flex items-center justify-end gap-1">
+                  <button 
+                    onClick={() => onEdit(a)} 
+                    className="p-1.5 text-blue-500 hover:bg-blue-100 rounded-lg transition-colors"
+                    title="Editar"
                   >
-                    {assignment.is_active ? "Activo" : "Inactivo"}
-                  </span>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                  <button
-                    onClick={() => onEdit(assignment)}
-                    className="text-blue-600 hover:text-blue-900 mr-3"
-                  >
-                    <Edit className="h-4 w-4" />
+                    <Edit className="h-3.5 w-3.5" />
                   </button>
-                  <button
-                    onClick={() => onDelete(assignment.id)}
-                    className="text-red-600 hover:text-red-900"
+                  <button 
+                    onClick={() => onDelete(a.id)} 
+                    className="p-1.5 text-red-500 hover:bg-red-100 rounded-lg transition-colors"
+                    title="Eliminar"
                   >
-                    <Trash2 className="h-4 w-4" />
+                    <Trash2 className="h-3.5 w-3.5" />
                   </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+                </div>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 }
