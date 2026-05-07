@@ -39,7 +39,7 @@ export default function TeamDashboard() {
       trackingApi.closeTracking(trackingId, achievedValue, achievedTotal),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["team", "dashboard", year] });
-      setCloseModal({ open: false, month: null, indicator: null });
+      setCloseModal({ open: false, month: null, indicator: null, assignmentId: null });
       setCaseInput({ casos: "", total: "" });
       setDirectPercentage("");
       setInputMode("formula");
