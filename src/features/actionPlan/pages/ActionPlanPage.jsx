@@ -224,6 +224,7 @@ export default function ActionPlanPage() {
               <PlanCard
                 key={plan.id}
                 plan={plan}
+                showUser={false}
                 onView={() => setSelectedPlan(plan)}
               />
             ))}
