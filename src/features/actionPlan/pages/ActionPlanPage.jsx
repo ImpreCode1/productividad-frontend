@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { FileText, X, Search, TrendingUp, TrendingDown, AlertTriangle, ChevronDown, ChevronRight } from "lucide-react";
+import { FileText, X, Search, TrendingUp, TrendingDown, ChevronDown, ChevronRight } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "../../../hooks/useAuth";
 import * as actionPlanApi from "../../../api/actionPlan.api";
@@ -21,19 +21,62 @@ export default function ActionPlanPage() {
   const [filterStatus, setFilterStatus] = useState("all");
   const [search, setSearch] = useState("");
   const [expandedUsers, setExpandedUsers] = useState({});
+  const [viewMode, setViewMode] = useState("team");
 
-  const isLeaderOrAdmin = user?.roles?.some(r => ["LEADER", "ADMIN"].includes(r));
+  const isAdmin = user?.roles?.includes("ADMIN");
+  const isLeader = user?.roles?.includes("LEADER");
+  const isEmployee = user?.roles?.includes("EMPLOYEE");
+  const isLeaderAndEmployee = isLeader && isEmployee;
+  const isOnlyEmployee = isEmployee && !isLeader && !isAdmin;
+  const canSeeToggle = isAdmin || isLeaderAndEmployee;
 
-  const { data: actionPlans, isLoading } = useQuery({
-    queryKey: isLeaderOrAdmin ? ["team", "action-plans", user?.id, year] : ["my", "action-plans", year],
-    queryFn: () => isLeaderOrAdmin
-      ? actionPlanApi.getTeamActionPlans(user.id, year)
-      : actionPlanApi.getMyActionPlans(year),
+  // Para empleados: solo mis planes
+  // Para líderes+empleados: puede togglear entre mis planes y equipo
+  // Para líderes puros: solo equipo
+  // Para admins: puede togglear
+
+  const getDefaultViewMode = () => {
+    if (isOnlyEmployee) return "my";
+    if (isLeader && !isAdmin && !isLeaderAndEmployee) return "team";
+    if (isLeaderAndEmployee) return "my";
+    return "team";
+  };
+
+  const { data: myActionPlans, isLoading: loadingMy } = useQuery({
+    queryKey: ["my", "action-plans", year],
+    queryFn: () => actionPlanApi.getMyActionPlans(year),
     enabled: !!user?.id,
   });
 
+  const { data: teamActionPlans, isLoading: loadingTeam } = useQuery({
+    queryKey: ["team", "action-plans", user?.id, year],
+    queryFn: () => actionPlanApi.getTeamActionPlans(user.id, year),
+    enabled: !!user?.id && (isLeader || isAdmin),
+  });
+
+  const getActionPlans = () => {
+    if (isOnlyEmployee) return myActionPlans;
+    if (isLeaderAndEmployee) {
+      if (viewMode === "my") return myActionPlans;
+      return teamActionPlans;
+    }
+    if (!isAdmin && isLeader) return teamActionPlans;
+    if (viewMode === "my") return myActionPlans;
+    return teamActionPlans;
+  };
+
+  const getIsLoading = () => {
+    if (isOnlyEmployee) return loadingMy;
+    if (isLeaderAndEmployee) return viewMode === "my" ? loadingMy : loadingTeam;
+    if (!isAdmin && isLeader) return loadingTeam;
+    return viewMode === "my" ? loadingMy : loadingTeam;
+  };
+
+  const isLoading = getIsLoading();
+  const actionPlans = getActionPlans() || [];
+
   const filteredPlans = useMemo(() => {
-    if (!actionPlans) return [];
+    if (!actionPlans || !Array.isArray(actionPlans)) return [];
     return actionPlans.filter((plan) => {
       if (filterMonth && plan.month !== filterMonth) return false;
       if (filterStatus === "met") {
@@ -47,8 +90,7 @@ export default function ActionPlanPage() {
           !plan.indicator_name?.toLowerCase().includes(q) &&
           !plan.user_name?.toLowerCase().includes(q) &&
           !plan.action_plan?.toLowerCase().includes(q)
-        )
-          return false;
+        ) return false;
       }
       return true;
     });
@@ -63,7 +105,7 @@ export default function ActionPlanPage() {
   }, [actionPlans]);
 
   const plansByUser = useMemo(() => {
-    if (!isLeaderOrAdmin) return null;
+    if (isOnlyEmployee) return null;
     const grouped = {};
     for (const plan of filteredPlans) {
       const key = plan.user_id || "unknown";
@@ -86,7 +128,7 @@ export default function ActionPlanPage() {
       }
     }
     return Object.values(grouped);
-  }, [filteredPlans, isLeaderOrAdmin]);
+  }, [filteredPlans, isOnlyEmployee]);
 
   const toggleUser = (userId) => {
     setExpandedUsers((prev) => ({ ...prev, [userId]: !prev[userId] }));
@@ -108,22 +150,40 @@ export default function ActionPlanPage() {
           <div>
             <h1 className="text-2xl font-bold text-gray-900">Planes de Acción</h1>
             <p className="text-gray-500 text-sm">
-              {isLeaderOrAdmin ? "Planes de acción de tu equipo" : "Tus planes de acción"}
+              {isOnlyEmployee ? "Tus planes de acción" : isLeaderAndEmployee ? (viewMode === "my" ? "Tus planes de acción" : "Planes de acción de tu equipo") : isLeader && !isAdmin ? "Planes de acción de tu equipo" : (viewMode === "my" ? "Tus planes de acción" : "Planes de acción de tu equipo")}
             </p>
           </div>
         </div>
-        <select
-          value={year}
-          onChange={(e) => setYear(Number(e.target.value))}
-          className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500"
-        >
-          <option value={currentYear}>{currentYear}</option>
-          <option value={currentYear - 1}>{currentYear - 1}</option>
-          <option value={currentYear - 2}>{currentYear - 2}</option>
-        </select>
+        <div className="flex items-center gap-3">
+          {canSeeToggle && (
+            <div className="flex bg-gray-100 rounded-lg p-1">
+              <button
+                onClick={() => setViewMode("my")}
+                className={`px-3 py-1 text-sm rounded-md transition-colors ${viewMode === "my" ? "bg-white shadow text-gray-900" : "text-gray-600 hover:text-gray-900"}`}
+              >
+                Mis Planes
+              </button>
+              <button
+                onClick={() => setViewMode("team")}
+                className={`px-3 py-1 text-sm rounded-md transition-colors ${viewMode === "team" ? "bg-white shadow text-gray-900" : "text-gray-600 hover:text-gray-900"}`}
+              >
+                Equipo
+              </button>
+            </div>
+          )}
+          <select
+            value={year}
+            onChange={(e) => setYear(Number(e.target.value))}
+            className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500"
+          >
+            <option value={currentYear}>{currentYear}</option>
+            <option value={currentYear - 1}>{currentYear - 1}</option>
+            <option value={currentYear - 2}>{currentYear - 2}</option>
+          </select>
+        </div>
       </div>
 
-      {!isLoading && actionPlans && (
+      {!isLoading && actionPlans && actionPlans.length > 0 && (
         <div className="grid grid-cols-3 gap-4">
           <div className="bg-white rounded-lg shadow p-4 flex items-center gap-4">
             <div className="p-3 bg-purple-100 rounded-full">
@@ -218,13 +278,13 @@ export default function ActionPlanPage() {
                 : "No hay planes de acción para este período"}
             </p>
           </div>
-        ) : !isLeaderOrAdmin ? (
+        ) : isOnlyEmployee || viewMode === "my" ? (
           <div className="divide-y divide-gray-200">
             {filteredPlans.map((plan) => (
               <PlanCard
                 key={plan.id}
                 plan={plan}
-                showUser={false}
+                showUser={isOnlyEmployee}
                 onView={() => setSelectedPlan(plan)}
               />
             ))}
@@ -291,7 +351,7 @@ export default function ActionPlanPage() {
               </button>
             </div>
             <div className="p-4 space-y-4">
-              {isLeaderOrAdmin && (
+              {(isLeader || isAdmin) && (
                 <div className="bg-gray-50 p-3 rounded-lg">
                   <p className="text-sm text-gray-500">Colaborador</p>
                   <p className="font-medium">{selectedPlan.user_name}</p>

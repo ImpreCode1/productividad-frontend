@@ -7,81 +7,91 @@ import {
   UserCog,
   FileText,
   Paperclip,
+  User,
 } from "lucide-react";
 
-const menuSections = [
-  {
-    title: "General",
-    items: [
-      {
-        path: "/",
-        label: "Dashboard",
-        icon: LayoutDashboard,
-        roles: ["ADMIN", "LEADER", "EMPLOYEE"],
-      },
-    ],
-  },
-  {
-    title: "Operación",
-    items: [
-      {
-        path: "/evidence",
-        label: "Evidencias",
-        icon: Paperclip,
-        roles: ["EMPLOYEE"],
-      },
-      {
-        path: "/action-plan",
-        label: "Planes de Acción",
-        icon: FileText,
-        roles: ["ADMIN", "LEADER", "EMPLOYEE"],
-      },
-    ],
-  },
-  {
-    title: "Gestión",
-    items: [
-      {
-        path: "/leader",
-        label: "Equipo",
-        icon: Users,
-        roles: ["ADMIN", "LEADER"],
-      },
-    ],
-  },
-  {
-    title: "Administración",
-    items: [
-      {
-        path: "/assignments",
-        label: "Indicadores",
-        icon: Target,
-        roles: ["ADMIN"],
-      },
-      {
-        path: "/teams",
-        label: "Equipos",
-        icon: Users,
-        roles: ["ADMIN"],
-      },
-      {
-        path: "/users",
-        label: "Usuarios",
-        icon: UserCog,
-        roles: ["ADMIN"],
-      },
-    ],
-  },
-];
+const getMenuSections = (roles = []) => {
+  const isAdmin = roles.includes("ADMIN");
+  const isLeader = roles.includes("LEADER");
+  const isEmployee = roles.includes("EMPLOYEE");
+  const isLeaderAndEmployee = isLeader && isEmployee;
+  
+  const sections = [];
+
+  // Dashboard section
+  if (isAdmin) {
+    sections.push({
+      title: "Dashboard",
+      items: [
+        { path: "/admin", label: "Dashboard General", icon: LayoutDashboard },
+      ],
+    });
+  } 
+  if (isEmployee || isLeaderAndEmployee) {
+    sections.push({
+      title: "Dashboard",
+      items: [
+        { path: "/employee", label: "Mi Dashboard", icon: User },
+      ],
+    });
+  }
+
+  // Operación - siempre visibles para employee o leader+employee
+  if (isEmployee || isLeaderAndEmployee) {
+    sections.push({
+      title: "Operación",
+      items: [
+        { path: "/evidence", label: "Evidencias", icon: Paperclip },
+        { path: "/action-plan", label: "Planes de Acción", icon: FileText },
+      ],
+    });
+  } else if (isLeader && !isAdmin) {
+    sections.push({
+      title: "Operación",
+      items: [
+        { path: "/action-plan", label: "Planes de Acción", icon: FileText },
+      ],
+    });
+  } else if (isAdmin) {
+    sections.push({
+      title: "Operación",
+      items: [
+        { path: "/evidence", label: "Evidencias", icon: Paperclip },
+        { path: "/action-plan", label: "Planes de Acción", icon: FileText },
+      ],
+    });
+  }
+
+  // Gestión
+  if (isLeader || isAdmin) {
+    sections.push({
+      title: "Gestión",
+      items: [
+        { path: "/leader", label: "Equipo", icon: Users },
+      ],
+    });
+  }
+
+  // Administración (solo admins)
+  if (isAdmin) {
+    sections.push({
+      title: "Administración",
+      items: [
+        { path: "/assignments", label: "Indicadores", icon: Target },
+        { path: "/teams", label: "Equipos", icon: Users },
+        { path: "/users", label: "Usuarios", icon: UserCog },
+      ],
+    });
+  }
+
+  return sections;
+};
 
 export default function Sidebar() {
   const location = useLocation();
   const { user } = useAuth();
 
-  const canAccess = (roles) => {
-    if (!user?.roles || user.roles.length === 0) return true;
-    return roles.some((role) => user.roles.includes(role));
-  };
+  const menuSections = getMenuSections(user?.roles || []);
 
   return (
     <aside className="w-64 bg-gray-900 text-white h-full flex-shrink-0 p-4 flex flex-col overflow-y-auto">
@@ -91,48 +101,40 @@ export default function Sidebar() {
       </div>
 
       <nav className="flex flex-col gap-6">
-        {menuSections.map((section) => {
-          const visibleItems = section.items.filter((item) =>
-            canAccess(item.roles)
-          );
+        {menuSections.map((section) => (
+          <div key={section.title}>
+            <p className="text-xs text-gray-500 uppercase mb-2 px-2">
+              {section.title}
+            </p>
 
-          if (visibleItems.length === 0) return null;
+            <div className="space-y-1">
+              {section.items.map((item) => {
+                const isActive =
+                  location.pathname === item.path ||
+                  (item.path !== "/" && location.pathname.startsWith(item.path));
 
-          return (
-            <div key={section.title}>
-              <p className="text-xs text-gray-500 uppercase mb-2 px-2">
-                {section.title}
-              </p>
+                const Icon = item.icon;
 
-              <div className="space-y-1">
-                {visibleItems.map((item) => {
-                  const isActive =
-                    location.pathname === item.path ||
-                    (item.path !== "/" && location.pathname.startsWith(item.path));
-
-                  const Icon = item.icon;
-
-                  return (
-                    <Link
-                      key={item.path}
-                      to={item.path}
-                      className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-all ${
-                        isActive
-                          ? "bg-blue-600 text-white shadow"
-                          : "text-gray-300 hover:bg-gray-800 hover:text-white"
-                      }`}
-                    >
-                      <Icon size={18} />
-                      <span className="text-sm font-medium">
-                        {item.label}
-                      </span>
-                    </Link>
-                  );
-                })}
-              </div>
+                return (
+                  <Link
+                    key={item.path}
+                    to={item.path}
+                    className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-all ${
+                      isActive
+                        ? "bg-blue-600 text-white shadow"
+                        : "text-gray-300 hover:bg-gray-800 hover:text-white"
+                    }`}
+                  >
+                    <Icon size={18} />
+                    <span className="text-sm font-medium">
+                      {item.label}
+                    </span>
+                  </Link>
+                );
+              })}
             </div>
-          );
-        })}
+          </div>
+        ))}
       </nav>
 
       <div className="mt-auto pt-6 border-t border-gray-800">

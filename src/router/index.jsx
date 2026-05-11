@@ -4,7 +4,9 @@ import Layout from "../components/layout/Layout";
 
 import NoAccessPage from "../pages/NoAccessPage";
 
-import Dashboard from "../features/dashboard/pages/Dashboard";
+import EmployeeDashboard from "../features/dashboard/pages/EmployeeDashboard";
+import AdminDashboard from "../features/dashboard/pages/AdminDashboard";
+import DashboardRedirect from "../features/dashboard/pages/DashboardRedirect";
 import TrackingPage from "../features/tracking/pages/TrackingPage";
 import UsersPage from "../features/users/pages/UsersPage";
 import AssignmentsPage from "../features/assignments/pages/AssignmentsPage";
@@ -28,7 +30,12 @@ export default function AppRouter() {
             </ProtectedRoute>
           }
         >
-          <Route index element={<Dashboard />} />
+          <Route index element={<DashboardRedirect />} />
+
+          <Route
+            path="employee"
+            element={<EmployeeDashboard />}
+          />
 
           <Route
             path="tracking"
@@ -48,6 +55,11 @@ export default function AppRouter() {
           <Route
             path="leader"
             element={<TeamDashboard />}
+          />
+
+          <Route
+            path="admin"
+            element={<AdminDashboard />}
           />
 
           <Route
