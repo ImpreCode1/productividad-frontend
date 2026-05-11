@@ -16,110 +16,48 @@ export default function UserList({ users, onEdit }) {
   }
 
   return (
-    <div className="bg-white rounded-lg shadow overflow-hidden">
-      <div className="overflow-x-auto">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-64">
-                Usuario
-              </th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-56">
-                Correo
-              </th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-40">
-                Cargo
-              </th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-40">
-                Vicepresidencia
-              </th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-36">
-                Área
-              </th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-32">
-                Dirección
-              </th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-32">
-                Línea
-              </th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-40">
-                Líder
-              </th>
-              <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider w-20">
-                Estado
-              </th>
-              <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider w-20">
-              </th>
-            </tr>
-          </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
-            {users.map((user) => (
-              <tr key={user.id} className="hover:bg-gray-50">
-                <td className="px-4 py-3">
-                  <div className="flex items-center">
-                    <div className="flex-shrink-0 h-8 w-8 bg-blue-100 rounded-full flex items-center justify-center">
-                      <User className="h-4 w-4 text-blue-600" />
-                    </div>
-                    <div className="ml-3">
-                      <div className="text-sm font-medium text-gray-900 truncate">
-                        {user.name}
-                      </div>
-                      <div className="text-xs text-gray-500">
-                        {user.document_number}
-                      </div>
-                    </div>
-                  </div>
-                </td>
-                <td className="px-4 py-3">
-                  <div className="text-sm text-gray-500 truncate">{user.email}</div>
-                </td>
-                <td className="px-4 py-3">
-                  <div className="text-sm text-gray-500 truncate">{user.position_name || "-"}</div>
-                </td>
-                <td className="px-4 py-3">
-                  <div className="text-sm text-gray-500 truncate">{user.area || "-"}</div>
-                </td>
-                <td className="px-4 py-3">
-                  <div className="text-sm text-gray-500 truncate">{user.subarea || "-"}</div>
-                </td>
-                <td className="px-4 py-3">
-                  <div className="text-sm text-gray-500 truncate">{user.direccion || "-"}</div>
-                </td>
-                <td className="px-4 py-3">
-                  <div className="text-sm text-gray-500 truncate">
-                    {user.linea || "-"}
-                    {user.numero_linea ? ` (${user.numero_linea})` : ""}
-                  </div>
-                </td>
-                <td className="px-4 py-3">
-                  <div className="flex items-center text-sm text-gray-500">
-                    <UserCheck className="h-3 w-3 mr-1 flex-shrink-0" />
-                    <span className="truncate">{user.leader_name || "-"}</span>
-                  </div>
-                </td>
-                <td className="px-4 py-3 text-center">
-                  <span
-                    className={`px-2 py-1 inline-flex text-xs leading-4 font-semibold rounded-full ${
-                      user.is_active
-                        ? "bg-green-100 text-green-800"
-                        : "bg-red-100 text-red-800"
-                    }`}
-                  >
-                    {user.is_active ? "Activo" : "Inactivo"}
-                  </span>
-                </td>
-                <td className="px-4 py-3 text-right">
-                  <button
-                    onClick={() => onEdit(user)}
-                    className="text-blue-600 hover:text-blue-900 text-sm"
-                  >
-                    Editar
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+    <div className="bg-white rounded-lg shadow-md">
+      <div className="flex flex-col">
+        <div className="flex bg-gradient-to-r from-gray-50 to-gray-100 border-b border-gray-200 text-xs font-semibold text-gray-600">
+          <div className="w-1/6 px-2 py-2">Usuario</div>
+          <div className="w-1/6 px-2 py-2">Cargo</div>
+          <div className="w-1/6 px-2 py-2">Vicepresidencia</div>
+          <div className="w-1/6 px-2 py-2">Área</div>
+          <div className="w-1/6 px-2 py-2">Línea</div>
+          <div className="w-1/6 px-2 py-2">Líder</div>
+          <div className="w-16 px-2 py-2 text-center">Estado</div>
+          <div className="w-12 px-2 py-2"></div>
+        </div>
+        {users.map((user) => (
+          <div key={user.id} className="flex hover:bg-blue-50/50 transition-colors duration-150 text-xs">
+            <div className="w-1/6 px-2 py-2 flex items-center gap-2 min-w-0">
+              <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
+                <User className="h-3 w-3 text-blue-600" />
+              </div>
+              <span className="text-gray-700 font-medium truncate">{user.name}</span>
+            </div>
+            <div className="w-1/6 px-2 py-2 text-gray-500 truncate">{user.position_name || "-"}</div>
+            <div className="w-1/6 px-2 py-2 text-gray-500 truncate">{user.area || "-"}</div>
+            <div className="w-1/6 px-2 py-2 text-gray-500 truncate">{user.subarea || "-"}</div>
+            <div className="w-1/6 px-2 py-2 text-gray-500 truncate">
+              {user.linea || "-"}
+              {user.numero_linea ? `(${user.numero_linea})` : ""}
+            </div>
+            <div className="w-1/6 px-2 py-2 text-gray-500 truncate">{user.leader_name || "-"}</div>
+            <div className="w-16 px-2 py-2 text-center">
+              <span className={`inline-flex px-1.5 py-0.5 rounded text-[10px] font-semibold ${user.is_active ? "bg-emerald-100 text-emerald-700" : "bg-gray-100 text-gray-600"}`}>
+                {user.is_active ? "Activo" : "Inactivo"}
+              </span>
+            </div>
+            <div className="w-12 px-2 py-2 text-center">
+              <button onClick={() => onEdit(user)} className="p-1 text-blue-500 hover:bg-blue-100 rounded transition-colors">
+                <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                </svg>
+              </button>
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   );
