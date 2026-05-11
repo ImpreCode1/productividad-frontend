@@ -56,7 +56,6 @@ const getMenuSections = (roles = []) => {
     sections.push({
       title: "Operación",
       items: [
-        { path: "/evidence", label: "Evidencias", icon: Paperclip },
         { path: "/action-plan", label: "Planes de Acción", icon: FileText },
       ],
     });
