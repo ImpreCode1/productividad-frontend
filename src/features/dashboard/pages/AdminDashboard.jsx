@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { LayoutDashboard, Users, Target, CheckCircle, XCircle, Paperclip, ClipboardList, ChevronDown, ChevronRight, FileText, Briefcase } from "lucide-react";
+import { LayoutDashboard, Users, Target, CheckCircle, XCircle, Paperclip, ClipboardList, ChevronDown, ChevronRight, FileText, Briefcase, Check, AlertCircle } from "lucide-react";
 import api from "../../../api/client";
 
 const monthsList = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
@@ -197,6 +197,17 @@ export default function AdminDashboard() {
                 <span className="text-gray-500">Cerr: <span className="font-medium text-gray-700">{team.total_closed}</span></span>
                 <span className="text-gray-500">Planes: <span className="font-medium text-gray-700">{team.total_plans}</span></span>
                 <span className="text-gray-500">Evid: <span className="font-medium text-gray-700">{team.total_evidence}</span></span>
+                {team.total_indicators > 0 && team.total_closed >= team.total_indicators ? (
+                  <div className="flex items-center gap-1 text-green-600" title="Todos los indicadores calificados">
+                    <Check className="h-4 w-4" />
+                    <span className="text-xs font-medium">Calificado</span>
+                  </div>
+                ) : team.total_indicators > 0 ? (
+                  <div className="flex items-center gap-1 text-amber-600" title={`Faltan ${team.total_indicators - team.total_closed} indicadores por calificar`}>
+                    <AlertCircle className="h-4 w-4" />
+                    <span className="text-xs font-medium">Pendiente</span>
+                  </div>
+                ) : null}
                 <span className={`px-2 py-0.5 rounded text-xs font-medium ${
                   team.avg_score >= 80 ? "bg-green-100 text-green-800" :
                   team.avg_score >= 50 ? "bg-yellow-100 text-yellow-800" :

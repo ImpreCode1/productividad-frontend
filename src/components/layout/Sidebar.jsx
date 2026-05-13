@@ -94,9 +94,16 @@ export default function Sidebar() {
 
   return (
     <aside className="w-64 bg-gray-900 text-white h-full flex-shrink-0 p-4 flex flex-col overflow-y-auto">
-      <div className="mb-8">
-        <h1 className="text-xl font-bold tracking-wide">Productividad</h1>
-        <p className="text-xs text-gray-400">Sistema de Evaluación</p>
+      <div className="mb-8 flex items-center gap-3">
+        <img 
+          src="/impresistem_logo.png" 
+          alt="Logo" 
+          className="h-14 w-14 object-contain"
+        />
+        <div>
+          <h1 className="text-lg font-bold tracking-wide">Productividad</h1>
+          <p className="text-xs text-gray-400">Sistema de Evaluación</p>
+        </div>
       </div>
 
       <nav className="flex flex-col gap-6">
