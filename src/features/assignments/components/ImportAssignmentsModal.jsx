@@ -112,7 +112,7 @@ export function ImportAssignmentsModal({ isOpen, onClose, year, month }) {
         )}
 
         {preview?.failed?.length > 0 && (
-          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 max-h-40 overflow-y-auto">
+          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 max-h-60 overflow-y-auto">
             <div className="flex items-center mb-2">
               <AlertTriangle className="h-5 w-5 text-yellow-600 mr-2" />
               <p className="text-sm font-medium text-yellow-800">
@@ -120,14 +120,11 @@ export function ImportAssignmentsModal({ isOpen, onClose, year, month }) {
               </p>
             </div>
             <ul className="text-xs text-yellow-700 space-y-1">
-              {preview.failed.slice(0, 10).map((item, idx) => (
+              {preview.failed.map((item, idx) => (
                 <li key={idx}>
                   <strong>{item.responsable}</strong>: {item.indicador}
                 </li>
               ))}
-              {preview.failed.length > 10 && (
-                <li className="italic">...y {preview.failed.length - 10} más</li>
-              )}
             </ul>
           </div>
         )}
