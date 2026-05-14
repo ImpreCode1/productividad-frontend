@@ -6,24 +6,26 @@ import api from "../../../api/client";
 const monthsList = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
 
 const getMonthStatus = (monthData, targetValue) => {
-  if (!monthData) return "pending";
-  if (!monthData.is_closed) return monthData.achieved_value !== null ? "evaluating" : "pending";
-  return monthData.achievement_percentage >= targetValue ? "met" : "not_met";
+  if (!monthData) return "not_assigned";
+  if (monthData.achievement_percentage !== null && monthData.achievement_percentage !== undefined) {
+    if (!monthData.is_closed) return "not_evaluated";
+    return monthData.achievement_percentage >= targetValue ? "met" : "not_met";
+  }
+  if (!monthData.is_closed) return "not_evaluated";
+  return "not_assigned";
 };
 
 export default function AdminDashboard() {
   const currentYear = new Date().getFullYear();
   const [year, setYear] = useState(currentYear);
-  const [month, setMonth] = useState(null);
   const [expandedTeams, setExpandedTeams] = useState({});
   const [expandedUsers, setExpandedUsers] = useState({});
   const [expandedIndicators, setExpandedIndicators] = useState({});
 
   const { data: globalData, isLoading } = useQuery({
-    queryKey: ["dashboard", "global", year, month],
+    queryKey: ["dashboard", "global", year],
     queryFn: async () => {
       const params = new URLSearchParams({ year: year.toString() });
-      if (month) params.append("month", month.toString());
       const { data } = await api.get(`/dashboard/global?${params}`);
       return data;
     },
@@ -63,16 +65,6 @@ export default function AdminDashboard() {
         </div>
 
         <div className="flex items-center gap-3">
-          <select
-            value={month || ""}
-            onChange={(e) => setMonth(e.target.value ? Number(e.target.value) : null)}
-            className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-          >
-            <option value="">Todos los meses</option>
-            {monthsList.map((m, i) => (
-              <option key={i} value={i + 1}>{m}</option>
-            ))}
-          </select>
           <select
             value={year}
             onChange={(e) => setYear(Number(e.target.value))}
@@ -159,7 +151,7 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      {globalData?.monthly_summary && globalData.monthly_summary.length > 0 && (
+      {/* {globalData?.monthly_summary && globalData.monthly_summary.length > 0 && (
         <div className="bg-white rounded-lg shadow p-4">
           <h3 className="text-sm font-semibold text-gray-700 mb-3">Resumen por Mes</h3>
           <div className="grid grid-cols-12 gap-2">
@@ -173,7 +165,7 @@ export default function AdminDashboard() {
             ))}
           </div>
         </div>
-      )}
+      )} */}
 
       <div className="space-y-4">
         {globalData?.teams?.map((team) => (
@@ -286,6 +278,11 @@ export default function AdminDashboard() {
 
                                   {indicatorExpanded && (
                                     <div className="p-3">
+                                      <div className="grid grid-cols-12 gap-1 mb-1">
+                                        {monthsList.map((m) => (
+                                          <div key={m} className="text-[8px] text-center text-gray-500 font-medium">{m}</div>
+                                        ))}
+                                      </div>
                                       <div className="grid grid-cols-12 gap-1">
                                         {Array.from({ length: 12 }, (_, i) => {
                                           const monthNum = i + 1;
@@ -295,11 +292,11 @@ export default function AdminDashboard() {
                                           return (
                                             <div 
                                               key={monthNum}
-                                              className={`text-center p-1.5 rounded text-[10px] ${
-                                                status === "met" ? "bg-green-100 text-green-700" :
-                                                status === "not_met" ? "bg-red-100 text-red-700" :
-                                                status === "evaluating" ? "bg-blue-50 text-blue-700" :
-                                                "bg-gray-100 text-gray-400"
+                                              className={`text-center p-1.5 rounded text-[10px] border ${
+                                                status === "met" ? "bg-green-100 text-green-700 border-green-200" :
+                                                status === "not_met" ? "bg-red-100 text-red-700 border-red-200" :
+                                                status === "not_evaluated" ? "bg-gray-300 text-gray-700 border-gray-400" :
+                                                "bg-gray-100 text-gray-500 border-gray-200"
                                               }`}
                                             >
                                               <div className="font-medium">
@@ -316,10 +313,10 @@ export default function AdminDashboard() {
                                         })}
                                       </div>
                                       <div className="flex gap-3 mt-2 text-[10px] text-gray-500">
-                                        <span className="flex items-center gap-1"><span className="w-2 h-2 bg-green-100 rounded"></span> Cumplido</span>
-                                        <span className="flex items-center gap-1"><span className="w-2 h-2 bg-red-100 rounded"></span> No cumplimiento</span>
-                                        <span className="flex items-center gap-1"><span className="w-2 h-2 bg-blue-50 rounded"></span> En evaluación</span>
-                                        <span className="flex items-center gap-1"><span className="w-2 h-2 bg-gray-100 rounded"></span> Pendiente</span>
+                                        <span className="flex items-center gap-1"><span className="w-2 h-2 bg-green-100 border border-green-200 rounded"></span> Cumplido</span>
+                                        <span className="flex items-center gap-1"><span className="w-2 h-2 bg-red-100 border border-red-200 rounded"></span> No cumplimiento</span>
+                                        <span className="flex items-center gap-1"><span className="w-2 h-2 bg-gray-300 border border-gray-400 rounded"></span> Sin evaluar</span>
+                                        <span className="flex items-center gap-1"><span className="w-2 h-2 bg-gray-100 border border-gray-200 rounded"></span> Sin asignar</span>
                                       </div>
                                     </div>
                                   )}
