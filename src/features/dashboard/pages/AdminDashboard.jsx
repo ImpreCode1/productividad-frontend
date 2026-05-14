@@ -309,7 +309,7 @@ export default function AdminDashboard() {
                                               </div>
                                               <div className="flex justify-center gap-0.5 mt-0.5">
                                                 {monthData?.has_evidence && <span className="text-[8px]">📎</span>}
-                                                {monthData?.has_action_plan && <span className="text-[8px]">📋</span>}
+                                                {monthData?.has_action_plan && <span className="text-[8px]"></span>}
                                               </div>
                                             </div>
                                           );
