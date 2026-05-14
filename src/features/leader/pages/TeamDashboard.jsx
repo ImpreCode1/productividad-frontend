@@ -27,6 +27,7 @@ export default function TeamDashboard() {
   const [actionPlanData, setActionPlanData] = useState({ reason_not_met: "", action_plan: "" });
   const [actionPlanLoading, setActionPlanLoading] = useState(false);
   const [evidenceModal, setEvidenceModal] = useState({ open: false, userId: null, month: null, monthName: "", indicatorName: "" });
+  const [filterStatus, setFilterStatus] = useState("all");
 
   const { data: evidenceData, refetch: refetchEvidence, isLoading: evidenceLoading, error: evidenceError } = useQuery({
     queryKey: ["evidenceByMonth", evidenceModal.userId, year, evidenceModal.month],
@@ -303,6 +304,86 @@ export default function TeamDashboard() {
         </div>
       </div>
 
+      {!isLoading && dashboard?.team && (
+        <div className="grid grid-cols-3 gap-4">
+          <div className="bg-white rounded-lg shadow p-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-yellow-100 rounded-lg">
+                <Unlock className="h-5 w-5 text-yellow-600" />
+              </div>
+              <div>
+                <p className="text-xs text-gray-500">Pendientes</p>
+                <p className="text-xl font-bold text-gray-900">
+                  {dashboard.team.reduce((acc, m) => acc + (m.indicators?.reduce((a, ind) => a + (ind.months?.filter(mes => !mes.is_closed).length || 0), 0) || 0), 0)}
+                </p>
+              </div>
+            </div>
+          </div>
+          <div className="bg-white rounded-lg shadow p-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-green-100 rounded-lg">
+                <Lock className="h-5 w-5 text-green-600" />
+              </div>
+              <div>
+                <p className="text-xs text-gray-500">Cerrados</p>
+                <p className="text-xl font-bold text-gray-900">
+                  {dashboard.team.reduce((acc, m) => acc + (m.indicators?.reduce((a, ind) => a + (ind.months?.filter(mes => mes.is_closed).length || 0), 0) || 0), 0)}
+                </p>
+              </div>
+            </div>
+          </div>
+          <div className="bg-white rounded-lg shadow p-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-blue-100 rounded-lg">
+                <CheckCircle className="h-5 w-5 text-blue-600" />
+              </div>
+              <div>
+                <p className="text-xs text-gray-500">Total Evaluaciones</p>
+                <p className="text-xl font-bold text-gray-900">
+                  {dashboard.team.reduce((acc, m) => acc + (m.indicators?.reduce((a, ind) => a + (ind.months?.length || 0), 0) || 0), 0)}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {!isLoading && dashboard?.team && (
+        <div className="flex items-center gap-4">
+          <span className="text-sm text-gray-500">Filtrar:</span>
+          <button
+            onClick={() => setFilterStatus("all")}
+            className={`px-3 py-1 text-sm rounded-full border ${
+              filterStatus === "all" 
+                ? "bg-blue-600 text-white border-blue-600" 
+                : "bg-white text-gray-600 border-gray-300 hover:bg-gray-50"
+            }`}
+          >
+            Todos
+          </button>
+          <button
+            onClick={() => setFilterStatus("pending")}
+            className={`px-3 py-1 text-sm rounded-full border ${
+              filterStatus === "pending" 
+                ? "bg-yellow-600 text-white border-yellow-600" 
+                : "bg-white text-gray-600 border-gray-300 hover:bg-gray-50"
+            }`}
+          >
+            Pendientes
+          </button>
+          <button
+            onClick={() => setFilterStatus("closed")}
+            className={`px-3 py-1 text-sm rounded-full border ${
+              filterStatus === "closed" 
+                ? "bg-green-600 text-white border-green-600" 
+                : "bg-white text-gray-600 border-gray-300 hover:bg-gray-50"
+            }`}
+          >
+            Cerrados
+          </button>
+        </div>
+      )}
+
       {isLoading ? (
         <div className="flex justify-center py-12">
           <div className="text-gray-500">Cargando equipo...</div>
@@ -319,7 +400,18 @@ export default function TeamDashboard() {
         </div>
       ) : (
         <div className="space-y-4">
-          {dashboard?.team?.map((member) => (
+          {dashboard?.team?.map((member) => {
+            const totalMonths = member.indicators?.reduce((acc, ind) => acc + (ind.months?.length || 0), 0) || 0;
+            const closedMonths = member.indicators?.reduce((acc, ind) => acc + (ind.months?.filter(m => m.is_closed).length || 0), 0) || 0;
+            const progress = totalMonths > 0 ? Math.round((closedMonths / totalMonths) * 100) : 0;
+            
+            const hasPending = member.indicators?.some(ind => ind.months?.some(m => !m.is_closed));
+            const hasClosed = member.indicators?.some(ind => ind.months?.some(m => m.is_closed));
+            
+            if (filterStatus === "pending" && !hasPending) return null;
+            if (filterStatus === "closed" && !hasClosed) return null;
+            
+            return (
             <div
               key={member.user_id}
               className="bg-white rounded-lg shadow overflow-hidden"
@@ -344,8 +436,16 @@ export default function TeamDashboard() {
                       </p>
                     </div>
                   </div>
-                  <div className="text-right text-sm text-gray-500">
-                    {member.indicators?.length || 0} indicadores
+                  <div className="text-right">
+                    <div className="text-sm text-gray-500 mb-1">
+                      {closedMonths}/{totalMonths} evaluados
+                    </div>
+                    <div className="w-24 h-2 bg-gray-200 rounded-full overflow-hidden">
+                      <div 
+                        className={`h-full ${progress === 100 ? 'bg-green-500' : progress > 50 ? 'bg-blue-500' : 'bg-yellow-500'}`}
+                        style={{ width: `${progress}%` }}
+                      />
+                    </div>
                   </div>
                 </div>
               </div>
@@ -436,15 +536,19 @@ export default function TeamDashboard() {
                                           <button
                                             onClick={() => handleOpenEvidenceModal(month, indicator, member.user_id)}
                                             className={`inline-flex items-center justify-center p-2 rounded-lg transition-colors ${
-                                              month.evidence_count > 0
+                                              (month.evidence_count && month.evidence_count > 0)
                                                 ? "text-green-600 hover:bg-green-50"
-                                                : "text-gray-400 hover:text-blue-600 hover:bg-blue-50"
+                                                : "text-gray-300 hover:text-blue-600 hover:bg-blue-50"
                                             }`}
                                             title={month.evidence_count > 0 ? `Ver ${month.evidence_count} evidencia(s)` : "Sin evidencias"}
                                           >
                                             <Paperclip size={18} />
-                                            {month.evidence_count > 0 && (
-                                              <span className="ml-1 text-xs font-medium">{month.evidence_count}</span>
+                                            {(month.evidence_count !== undefined && month.evidence_count !== null) ? (
+                                              <span className={`ml-1 text-xs font-medium ${month.evidence_count > 0 ? "text-green-600" : "text-gray-400"}`}>
+                                                {month.evidence_count}
+                                              </span>
+                                            ) : (
+                                              <span className="ml-1 text-xs font-medium text-gray-400">0</span>
                                             )}
                                           </button>
                                         </td>
@@ -492,7 +596,8 @@ export default function TeamDashboard() {
                 </div>
               )}
             </div>
-          ))}
+            );
+          })}
         </div>
       )}
 
