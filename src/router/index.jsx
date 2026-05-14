@@ -3,6 +3,7 @@ import ProtectedRoute from "../components/ProtectedRoute";
 import Layout from "../components/layout/Layout";
 
 import NoAccessPage from "../pages/NoAccessPage";
+import SessionExpiredPage from "../pages/SessionExpiredPage";
 
 import EmployeeDashboard from "../features/dashboard/pages/EmployeeDashboard";
 import AdminDashboard from "../features/dashboard/pages/AdminDashboard";
@@ -20,6 +21,7 @@ export default function AppRouter() {
     <BrowserRouter>
       <Routes>
 
+        <Route path="/session-expired" element={<SessionExpiredPage />} />
         <Route path="/no-access" element={<NoAccessPage />} />
 
         <Route

@@ -27,9 +27,9 @@ api.interceptors.response.use(
       isRedirecting = true;
       sessionStorage.removeItem("hydra_token");
       sessionStorage.removeItem("productividad_user");
+      sessionStorage.setItem("session_expired", "true");
       
-      const loginUrl = import.meta.env.VITE_HYDRA_LOGOUT_URL || "/login";
-      window.location.href = loginUrl;
+      window.location.href = "/session-expired";
       return new Promise(() => {});
     }
     

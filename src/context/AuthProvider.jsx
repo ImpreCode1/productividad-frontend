@@ -6,6 +6,8 @@ import { AuthContext } from "./AuthContext";
 
 const SESSION_KEY = "productividad_user";
 
+const SESSION_EXPIRED_KEY = "session_expired";
+
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(() => {
     const stored = sessionStorage.getItem(SESSION_KEY);
@@ -17,11 +19,27 @@ export function AuthProvider({ children }) {
     }
   });
 
+  const [sessionExpired, setSessionExpired] = useState(() => {
+    return sessionStorage.getItem(SESSION_EXPIRED_KEY) === "true";
+  });
+
+  const markSessionExpired = () => {
+    sessionStorage.setItem(SESSION_EXPIRED_KEY, "true");
+    setSessionExpired(true);
+  };
+
+  const clearSessionExpired = () => {
+    sessionStorage.removeItem(SESSION_EXPIRED_KEY);
+    setSessionExpired(false);
+  };
+
   const logout = () => {
     sessionStorage.removeItem(SESSION_KEY);
     sessionStorage.removeItem("hydra_token");
+    sessionStorage.removeItem(SESSION_EXPIRED_KEY);
     clearHydraCookie();
     setUser(null);
+    setSessionExpired(false);
 
     const hydraLogoutUrl = import.meta.env.VITE_HYDRA_LOGOUT_URL;
     if (hydraLogoutUrl) {
@@ -118,7 +136,7 @@ export function AuthProvider({ children }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, hasRole }}>
+    <AuthContext.Provider value={{ user, login, logout, hasRole, sessionExpired, markSessionExpired, clearSessionExpired }}>
       {children}
     </AuthContext.Provider>
   );
