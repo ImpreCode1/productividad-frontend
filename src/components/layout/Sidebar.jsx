@@ -8,6 +8,7 @@ import {
   FileText,
   Paperclip,
   User,
+  Mail,
 } from "lucide-react";
 
 const getMenuSections = (roles = []) => {
@@ -79,6 +80,7 @@ const getMenuSections = (roles = []) => {
         { path: "/assignments", label: "Indicadores", icon: Target },
         { path: "/teams", label: "Equipos", icon: Users },
         { path: "/users", label: "Usuarios", icon: UserCog },
+        { path: "/notifications", label: "Notificaciones", icon: Mail },
       ],
     });
   }
