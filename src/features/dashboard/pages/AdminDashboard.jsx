@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { LayoutDashboard, Users, Target, CheckCircle, XCircle, Paperclip, ClipboardList, ChevronDown, ChevronRight, FileText, Briefcase, Check, AlertCircle } from "lucide-react";
+import { LayoutDashboard, Users, Target, CheckCircle, XCircle, Paperclip, ClipboardList, ChevronDown, ChevronRight, FileText, Briefcase, Check, AlertCircle, Building2 } from "lucide-react";
 import api from "../../../api/client";
+import { getAreas } from "../../../api/users.api";
 
 const monthsList = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
 
@@ -18,14 +19,25 @@ const getMonthStatus = (monthData, targetValue) => {
 export default function AdminDashboard() {
   const currentYear = new Date().getFullYear();
   const [year, setYear] = useState(currentYear);
+  const [selectedArea, setSelectedArea] = useState("");
   const [expandedTeams, setExpandedTeams] = useState({});
   const [expandedUsers, setExpandedUsers] = useState({});
   const [expandedIndicators, setExpandedIndicators] = useState({});
 
+  const { data: areas } = useQuery({
+    queryKey: ["areas"],
+    queryFn: async () => {
+      const { data } = await getAreas();
+      return data;
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+
   const { data: globalData, isLoading } = useQuery({
-    queryKey: ["dashboard", "global", year],
+    queryKey: ["dashboard", "global", year, selectedArea],
     queryFn: async () => {
       const params = new URLSearchParams({ year: year.toString() });
+      if (selectedArea) params.append("area", selectedArea);
       const { data } = await api.get(`/dashboard/global?${params}`);
       return data;
     },
@@ -65,6 +77,20 @@ export default function AdminDashboard() {
         </div>
 
         <div className="flex items-center gap-3">
+          <div className="relative">
+            <Building2 className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <select
+              value={selectedArea}
+              onChange={(e) => setSelectedArea(e.target.value)}
+              className="pl-9 pr-8 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 appearance-none bg-white min-w-[200px]"
+            >
+              <option value="">Todas las Vicepresidencias</option>
+              {areas?.map((area) => (
+                <option key={area} value={area}>{area}</option>
+              ))}
+            </select>
+          </div>
+
           <select
             value={year}
             onChange={(e) => setYear(Number(e.target.value))}

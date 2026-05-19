@@ -3,6 +3,7 @@ import api from "./client";
 export const getUsers = () => api.get("/users/");
 export const getMe = () => api.get("/users/me");
 export const getUser = (id) => api.get(`/users/${id}`);
+export const getAreas = () => api.get("/users/areas");
 
 export const changeUserStatus = (id, is_active) =>
   api.patch(`/users/${id}/status`, { is_active });
