@@ -1,7 +1,18 @@
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Modal } from "../../../components/ui/Modal";
+import { getAreas } from "../../../api/users.api";
 
 export function CreateUserModal({ isOpen, onClose, onSave }) {
+  const { data: areas } = useQuery({
+    queryKey: ["areas"],
+    queryFn: async () => {
+      const { data } = await getAreas();
+      return data;
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -118,13 +129,16 @@ export function CreateUserModal({ isOpen, onClose, onSave }) {
           <label className="block text-sm font-medium text-gray-700 mb-1">
             Vicepresidencia
           </label>
-          <input
-            type="text"
+          <select
             value={formData.area}
             onChange={(e) => handleChange("area", e.target.value)}
             className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            placeholder="Opcional"
-          />
+          >
+            <option value="">Seleccionar...</option>
+            {areas?.map((area) => (
+              <option key={area} value={area}>{area}</option>
+            ))}
+          </select>
         </div>
 
         <div>

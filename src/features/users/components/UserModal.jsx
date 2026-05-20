@@ -1,15 +1,24 @@
 import { useState, useMemo, useEffect } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { Modal } from "../../../components/ui/Modal";
 import { useUsers, useUserRoles, useAssignLeader } from "../hooks/useUsers";
 import * as rolesApi from "../../../api/roles.api";
 import * as usersApi from "../../../api/users.api";
+import { getAreas } from "../../../api/users.api";
 
 export function UserModal({ isOpen, onClose, user }) {
   const queryClient = useQueryClient();
 
   const { data: users } = useUsers();
   const { data: roles } = useUserRoles();
+  const areasQuery = useQuery({
+    queryKey: ["areas"],
+    queryFn: async () => {
+      const { data } = await getAreas();
+      return data;
+    },
+    staleTime: 5 * 60 * 1000,
+  });
   const assignLeaderMutation = useAssignLeader();
   const assignRolesMutation = useAssignRolesToUser(queryClient);
   const statusMutation = useUpdateUserStatus(queryClient);
@@ -202,12 +211,16 @@ function UserForm({ user, users, roles, onClose, assignLeaderMutation, assignRol
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Vicepresidencia
               </label>
-              <input
-                type="text"
+              <select
                 value={localUser?.area || ""}
                 onChange={(e) => updateField("area", e.target.value)}
                 className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              />
+              >
+                <option value="">Seleccionar...</option>
+                {areasQuery.data?.map((area) => (
+                  <option key={area} value={area}>{area}</option>
+                ))}
+              </select>
             </div>
             <div className="col-span-2">
               <label className="block text-sm font-medium text-gray-700 mb-1">
