@@ -7,40 +7,46 @@ import * as usersApi from "../../../api/users.api";
 import { getAreas } from "../../../api/users.api";
 
 export function UserModal({ isOpen, onClose, user }) {
-  const queryClient = useQueryClient();
+  try {
+    const queryClient = useQueryClient();
 
-  const { data: users } = useUsers();
-  const { data: roles } = useUserRoles();
-  const areasQuery = useQuery({
-    queryKey: ["areas"],
-    queryFn: async () => {
-      const { data } = await getAreas();
-      return data;
-    },
-    staleTime: 5 * 60 * 1000,
-  });
-  const assignLeaderMutation = useAssignLeader();
-  const assignRolesMutation = useAssignRolesToUser(queryClient);
-  const statusMutation = useUpdateUserStatus(queryClient);
-  const updateUserMutation = useUpdateUser(queryClient);
+    const { data: users } = useUsers();
+    const { data: roles } = useUserRoles();
+    const areasQuery = useQuery({
+      queryKey: ["areas"],
+      queryFn: async () => {
+        const { data } = await getAreas();
+        return data;
+      },
+      staleTime: 5 * 60 * 1000,
+    });
+    const assignLeaderMutation = useAssignLeader();
+    const assignRolesMutation = useAssignRolesToUser(queryClient);
+    const statusMutation = useUpdateUserStatus(queryClient);
+    const updateUserMutation = useUpdateUser(queryClient);
 
-  if (!isOpen || !user) return null;
+    if (!isOpen || !user) return null;
 
-  return (
-    <UserForm
-      user={user}
-      users={users}
-      roles={roles}
-      onClose={onClose}
-      assignLeaderMutation={assignLeaderMutation}
-      assignRolesMutation={assignRolesMutation}
-      statusMutation={statusMutation}
-      updateUserMutation={updateUserMutation}
-    />
-  );
+    return (
+      <UserForm
+        user={user}
+        users={users}
+        roles={roles}
+        areas={areasQuery.data}
+        onClose={onClose}
+        assignLeaderMutation={assignLeaderMutation}
+        assignRolesMutation={assignRolesMutation}
+        statusMutation={statusMutation}
+        updateUserMutation={updateUserMutation}
+      />
+    );
+  } catch (error) {
+    console.error("Error rendering UserModal:", error);
+    return null;
+  }
 }
 
-function UserForm({ user, users, roles, onClose, assignLeaderMutation, assignRolesMutation, statusMutation, updateUserMutation }) {
+function UserForm({ user, users, roles, areas, onClose, assignLeaderMutation, assignRolesMutation, statusMutation, updateUserMutation }) {
   const [activeTab, setActiveTab] = useState("info");
   const [localUser, setLocalUser] = useState(user);
 
@@ -217,7 +223,7 @@ function UserForm({ user, users, roles, onClose, assignLeaderMutation, assignRol
                 className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               >
                 <option value="">Seleccionar...</option>
-                {areasQuery.data?.map((area) => (
+                {areas?.map((area) => (
                   <option key={area} value={area}>{area}</option>
                 ))}
               </select>

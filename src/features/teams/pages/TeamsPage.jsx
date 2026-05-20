@@ -15,7 +15,11 @@ export default function TeamsPage() {
   const [search, setSearch] = useState("");
   const [expandedTeams, setExpandedTeams] = useState({});
 
-  const availableLeaders = users?.filter((u) => u.is_active) || [];
+  const availableLeaders = users?.filter((u) => {
+    if (!u.is_active) return false;
+    const rolesStr = JSON.stringify(u.roles || u.role || "").toUpperCase();
+    return rolesStr.includes("LEADER");
+  }) || [];
 
   const filteredTeams = useMemo(() => {
     if (!search || !teams) return teams;
@@ -224,7 +228,7 @@ export default function TeamsPage() {
         title="Mover usuario a otro equipo"
         size="md"
       >
-        <div className="space-y-4">
+        <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-2">
           <div className="bg-gray-50 p-4 rounded-lg">
             <p className="text-sm text-gray-600">Usuario:</p>
             <p className="font-medium">{selectedMember?.name}</p>
