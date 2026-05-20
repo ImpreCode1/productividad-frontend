@@ -5,6 +5,7 @@ import { useUsers, useUserRoles, useAssignLeader } from "../hooks/useUsers";
 import * as rolesApi from "../../../api/roles.api";
 import * as usersApi from "../../../api/users.api";
 import { getAreas } from "../../../api/users.api";
+import { translateRole } from "../../../utils/auth";
 
 export function UserModal({ isOpen, onClose, user }) {
   try {
@@ -359,7 +360,7 @@ function UserForm({ user, users, roles, areas, onClose, assignLeaderMutation, as
                 />
                 <div className="ml-3">
                   <span className="text-sm font-medium text-gray-900">
-                    {role.name}
+                    {translateRole(role.name)}
                   </span>
                 </div>
               </label>

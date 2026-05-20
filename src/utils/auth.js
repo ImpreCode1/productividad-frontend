@@ -65,3 +65,16 @@ export function createAuthHeaders() {
 export function getStoredToken() {
   return sessionStorage.getItem("hydra_token");
 }
+
+export function translateRole(role) {
+  const roleMap = {
+    ADMIN: "ADMINISTRADOR",
+    LEADER: "EVALUADOR",
+    EMPLOYEE: "COLABORADOR",
+  };
+  return roleMap[role] || role;
+}
+
+export function translateRoles(roles = []) {
+  return roles.map(translateRole).join(", ");
+}

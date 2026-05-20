@@ -1,5 +1,6 @@
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "../../hooks/useAuth";
+import { translateRoles } from "../../utils/auth";
 import {
   LayoutDashboard,
   Users,
@@ -150,7 +151,7 @@ export default function Sidebar() {
           {user?.name || "Cargando..."}
         </p>
         <p className="text-xs text-gray-400 truncate">
-          {user?.roles?.join(", ") || ""}
+          {translateRoles(user?.roles) || ""}
         </p>
       </div>
     </aside>
