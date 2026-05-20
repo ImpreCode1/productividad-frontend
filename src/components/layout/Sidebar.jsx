@@ -47,14 +47,7 @@ const getMenuSections = (roles = []) => {
         { path: "/action-plan", label: "Planes de Acción", icon: FileText },
       ],
     });
-  } else if (isLeader && !isAdmin) {
-    sections.push({
-      title: "Operación",
-      items: [
-        { path: "/action-plan", label: "Planes de Acción", icon: FileText },
-      ],
-    });
-  } else if (isAdmin) {
+  } else if (isLeader) {
     sections.push({
       title: "Operación",
       items: [
@@ -64,7 +57,7 @@ const getMenuSections = (roles = []) => {
   }
 
   // Gestión
-  if (isLeader || isAdmin) {
+  if (isLeader) {
     sections.push({
       title: "Gestión",
       items: [

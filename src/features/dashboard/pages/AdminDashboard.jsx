@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { LayoutDashboard, Users, Target, CheckCircle, XCircle, Paperclip, ClipboardList, ChevronDown, ChevronRight, FileText, Briefcase, Check, AlertCircle, Building2 } from "lucide-react";
+import { LayoutDashboard, Users, Target, CheckCircle, XCircle, Paperclip, ClipboardList, ChevronDown, ChevronRight, FileText, Briefcase, Check, AlertCircle, Building2, Download } from "lucide-react";
 import api from "../../../api/client";
 import { getAreas } from "../../../api/users.api";
 
@@ -23,6 +23,35 @@ export default function AdminDashboard() {
   const [expandedTeams, setExpandedTeams] = useState({});
   const [expandedUsers, setExpandedUsers] = useState({});
   const [expandedIndicators, setExpandedIndicators] = useState({});
+  const [downloading, setDownloading] = useState(false);
+
+  const handleDownloadReport = async () => {
+    setDownloading(true);
+    try {
+      const token = sessionStorage.getItem("hydra_token");
+      const params = new URLSearchParams({ year: year.toString() });
+      if (selectedArea) params.append("area", selectedArea);
+      const response = await fetch(
+        `${import.meta.env.VITE_API_URL}/dashboard/global/report?${params}`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      if (!response.ok) throw new Error("Error al descargar reporte");
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `reporte_kpi_${year}.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error("Error downloading report:", error);
+      alert("Error al descargar el reporte");
+    } finally {
+      setDownloading(false);
+    }
+  };
 
   const { data: areas } = useQuery({
     queryKey: ["areas"],
@@ -100,6 +129,15 @@ export default function AdminDashboard() {
             <option value={currentYear - 1}>{currentYear - 1}</option>
             <option value={currentYear - 2}>{currentYear - 2}</option>
           </select>
+
+          <button
+            onClick={handleDownloadReport}
+            disabled={downloading}
+            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          >
+            <Download className="h-4 w-4" />
+            {downloading ? "Descargando..." : "Descargar Reporte Excel"}
+          </button>
         </div>
       </div>
 
@@ -331,7 +369,7 @@ export default function AdminDashboard() {
                                                   : "-"}
                                               </div>
                                               <div className="flex justify-center gap-0.5 mt-0.5">
-                                                {monthData?.has_evidence && <span className="text-[8px]">📎</span>}
+                                                {monthData?.has_evidence && <span className="text-[8px]"></span>}
                                                 {monthData?.has_action_plan && <span className="text-[8px]"></span>}
                                               </div>
                                             </div>
