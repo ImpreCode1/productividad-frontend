@@ -25,14 +25,14 @@ export function Modal({ isOpen, onClose, title, children, size = "md" }) {
   const containerClass = sizeClasses[size] || sizeClasses.md;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center overflow-hidden">
+    <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto py-4">
       <div 
         className="absolute inset-0 backdrop-blur-sm bg-black/30" 
         onClick={onClose}
       />
       
-      <div className={`relative bg-white rounded-lg shadow-xl w-full mx-4 ${containerClass}`}>
-        <div className="p-4 border-b border-gray-200 flex justify-between items-center">
+      <div className={`relative bg-white rounded-lg shadow-xl w-full mx-4 my-auto ${containerClass} max-h-[90vh] flex flex-col`}>
+        <div className="p-4 border-b border-gray-200 flex justify-between items-center shrink-0">
           <h3 className="text-lg font-medium text-gray-900">
             {title}
           </h3>
@@ -43,7 +43,7 @@ export function Modal({ isOpen, onClose, title, children, size = "md" }) {
             <X className="h-5 w-5" />
           </button>
         </div>
-        <div className="p-4">
+        <div className="p-4 overflow-y-auto">
           {children}
         </div>
       </div>
