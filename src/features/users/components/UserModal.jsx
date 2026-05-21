@@ -50,9 +50,12 @@ export function UserModal({ isOpen, onClose, user }) {
 function UserForm({ user, users, roles, areas, onClose, assignLeaderMutation, assignRolesMutation, statusMutation, updateUserMutation }) {
   const [activeTab, setActiveTab] = useState("info");
   const [localUser, setLocalUser] = useState(user);
+  const [leaderSearch, setLeaderSearch] = useState("");
+  const [showLeaderDropdown, setShowLeaderDropdown] = useState(false);
 
   useEffect(() => {
     setLocalUser(user);
+    setLeaderSearch("");
   }, [user]);
 
   const leaderId = localUser?.leader_id || "";
@@ -64,6 +67,12 @@ function UserForm({ user, users, roles, areas, onClose, assignLeaderMutation, as
     () => users?.filter((u) => u.id !== user?.id) || [],
     [users, user]
   );
+
+  const filteredLeaders = useMemo(() => {
+    if (!leaderSearch) return leaders;
+    const q = leaderSearch.toLowerCase();
+    return leaders.filter(l => l.name?.toLowerCase().includes(q));
+  }, [leaders, leaderSearch]);
 
   const handleSaveInfo = async () => {
     try {
@@ -312,22 +321,60 @@ function UserForm({ user, users, roles, areas, onClose, assignLeaderMutation, as
             </p>
           </div>
 
-          <div>
+          <div className="relative">
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Líder
             </label>
-            <select
-              value={leaderId}
-              onChange={(e) => updateField("leader_id", e.target.value)}
+            <input
+              type="text"
+              value={leaderId && !showLeaderDropdown ? (leaders.find(l => l.id === leaderId)?.name || "Sin líder asignado") : leaderSearch}
+              onChange={(e) => {
+                setLeaderSearch(e.target.value);
+                updateField("leader_id", "");
+                setShowLeaderDropdown(true);
+              }}
+              onFocus={() => setShowLeaderDropdown(true)}
+              onBlur={() => setTimeout(() => setShowLeaderDropdown(false), 200)}
+              placeholder="Buscar líder..."
               className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            >
-              <option value="">Sin líder asignado</option>
-              {leaders.map((leader) => (
-                <option key={leader.id} value={leader.id}>
-                  {leader.name}
-                </option>
-              ))}
-            </select>
+            />
+            {showLeaderDropdown && (
+              <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                <button
+                  type="button"
+                  onMouseDown={() => {
+                    updateField("leader_id", "");
+                    setLeaderSearch("");
+                    setShowLeaderDropdown(false);
+                  }}
+                  className={`w-full text-left px-3 py-2 text-sm hover:bg-blue-50 transition-colors ${
+                    !leaderId ? "bg-blue-50 text-blue-700 font-medium" : "text-gray-500"
+                  }`}
+                >
+                  Sin líder asignado
+                </button>
+                {filteredLeaders.length === 0 ? (
+                  <div className="px-3 py-2 text-sm text-gray-400">Sin resultados</div>
+                ) : (
+                  filteredLeaders.map((leader) => (
+                    <button
+                      key={leader.id}
+                      type="button"
+                      onMouseDown={() => {
+                        updateField("leader_id", leader.id);
+                        setLeaderSearch(leader.name);
+                        setShowLeaderDropdown(false);
+                      }}
+                      className={`w-full text-left px-3 py-2 text-sm hover:bg-blue-50 transition-colors ${
+                        leaderId === leader.id ? "bg-blue-50 text-blue-700 font-medium" : "text-gray-700"
+                      }`}
+                    >
+                      {leader.name}
+                    </button>
+                  ))
+                )}
+              </div>
+            )}
           </div>
 
           <button

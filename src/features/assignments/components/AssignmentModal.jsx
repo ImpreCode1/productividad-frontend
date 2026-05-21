@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Modal } from "../../../components/ui/Modal";
 
 const MONTHS = [
@@ -55,6 +55,15 @@ export function AssignmentModal({ isOpen, onClose, assignment, users, year, mont
   }, [assignment, isOpen, month]);
 
   const [loading, setLoading] = useState(false);
+  const [userSearch, setUserSearch] = useState("");
+  const [showUserDropdown, setShowUserDropdown] = useState(false);
+
+  const filteredUsers = useMemo(() => {
+    if (!users) return [];
+    if (!userSearch) return users;
+    const q = userSearch.toLowerCase();
+    return users.filter(u => u.name?.toLowerCase().includes(q));
+  }, [users, userSearch]);
 
   const handleChange = (field, value) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -90,24 +99,49 @@ export function AssignmentModal({ isOpen, onClose, assignment, users, year, mont
       size="md"
     >
       <form onSubmit={handleSubmit} className="space-y-4">
-        <div>
+        <div className="relative">
           <label className="block text-sm font-medium text-gray-700 mb-1">
             Usuario
           </label>
-          <select
-            value={formData.user_id}
-            onChange={(e) => handleChange("user_id", e.target.value)}
+          <input
+            type="text"
+            value={formData.user_id ? (users?.find(u => u.id === formData.user_id)?.name || "") : userSearch}
+            onChange={(e) => {
+              setUserSearch(e.target.value);
+              handleChange("user_id", "");
+              setShowUserDropdown(true);
+            }}
+            onFocus={() => setShowUserDropdown(true)}
+            onBlur={() => setTimeout(() => setShowUserDropdown(false), 200)}
             required
             disabled={!!assignment}
+            placeholder="Buscar usuario..."
             className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 disabled:text-gray-500"
-          >
-            <option value="">Seleccionar usuario</option>
-            {users?.map((user) => (
-              <option key={user.id} value={user.id}>
-                {user.name}
-              </option>
-            ))}
-          </select>
+          />
+          {showUserDropdown && !assignment && (
+            <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+              {filteredUsers.length === 0 ? (
+                <div className="px-3 py-2 text-sm text-gray-400">Sin resultados</div>
+              ) : (
+                filteredUsers.map((user) => (
+                  <button
+                    key={user.id}
+                    type="button"
+                    onMouseDown={() => {
+                      handleChange("user_id", user.id);
+                      setUserSearch(user.name);
+                      setShowUserDropdown(false);
+                    }}
+                    className={`w-full text-left px-3 py-2 text-sm hover:bg-blue-50 transition-colors ${
+                      formData.user_id === user.id ? "bg-blue-50 text-blue-700 font-medium" : "text-gray-700"
+                    }`}
+                  >
+                    {user.name}
+                  </button>
+                ))
+              )}
+            </div>
+          )}
         </div>
 
         <div>
