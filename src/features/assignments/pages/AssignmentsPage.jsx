@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Target, Plus, Search, Upload, Copy } from "lucide-react";
+import { Target, Plus, Upload, Copy } from "lucide-react";
 import { useAssignments, useCreateAssignment, useUpdateAssignment, useDeleteAssignment, useCloneFromPreviousMonth } from "../hooks/useAssignments";
 import { useUsers } from "../../users/hooks/useUsers";
 import AssignmentList from "../components/AssignmentList";
@@ -26,7 +26,6 @@ export default function AssignmentsPage() {
   const currentMonth = new Date().getMonth() + 1;
   const [year, setYear] = useState(currentYear);
   const [month, setMonth] = useState(currentMonth);
-  const [search, setSearch] = useState("");
   const [showModal, setShowModal] = useState(false);
   const [showImport, setShowImport] = useState(false);
   const [editAssignment, setEditAssignment] = useState(null);
@@ -38,19 +37,6 @@ export default function AssignmentsPage() {
   const updateMutation = useUpdateAssignment();
   const deleteMutation = useDeleteAssignment();
   const cloneMutation = useCloneFromPreviousMonth();
-
-  const filteredAssignments = assignments?.filter((a) => {
-    if (!search) return true;
-    const searchLower = search.toLowerCase();
-    
-    const user = users?.find((u) => u.id === a.user_id);
-    const userName = user?.name?.toLowerCase() || "";
-    
-    return (
-      a.indicator_name?.toLowerCase().includes(searchLower) ||
-      userName.includes(searchLower)
-    );
-  });
 
   const handleSave = async (data) => {
     if (editAssignment) {
@@ -141,20 +127,7 @@ export default function AssignmentsPage() {
         </div>
       </div>
 
-      <div className="flex gap-4">
-        <div className="flex-1 bg-white rounded-lg shadow p-4">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Buscar indicador..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            />
-          </div>
-        </div>
-
+      <div className="flex justify-end">
         <button
           onClick={() => setShowModal(true)}
           className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
@@ -168,13 +141,13 @@ export default function AssignmentsPage() {
         <div className="flex justify-center py-12">
           <div className="text-gray-500">Cargando indicadores...</div>
         </div>
-      ) : filteredAssignments?.length === 0 ? (
+      ) : assignments?.length === 0 ? (
         <div className="bg-white rounded-lg shadow p-8 text-center">
           <p className="text-gray-500">No hay indicadores para este período</p>
         </div>
       ) : (
         <AssignmentList
-          assignments={filteredAssignments}
+          assignments={assignments}
           users={users}
           onEdit={handleEdit}
           onDelete={handleDelete}
