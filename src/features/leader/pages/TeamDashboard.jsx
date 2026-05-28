@@ -4,7 +4,6 @@ import { useTeamDashboard } from "../hooks";
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import * as trackingApi from "../../../api/tracking.api";
 import * as actionPlanApi from "../../../api/actionPlan.api";
-import * as evidenceApi from "../../../api/evidence.api";
 import * as approvalApi from "../../../api/approval.api";
 import api from "../../../api/client";
 
@@ -31,25 +30,48 @@ export default function TeamDashboard() {
   const [caseInput, setCaseInput] = useState({ casos: "", total: "" });
   const [inputMode, setInputMode] = useState("formula");
   const [directPercentage, setDirectPercentage] = useState("");
-  const [approveModal, setApproveModal] = useState({ open: false, tracking: null });
+  const [approveModal, setApproveModal] = useState({ open: false, tracking: null, monthData: null, indicatorData: null });
   const [rejectModal, setRejectModal] = useState({ open: false, tracking: null, comment: "" });
   const [actionPlanModal, setActionPlanModal] = useState({ open: false, month: null, indicator: null, actionPlanId: null });
   const [actionPlanData, setActionPlanData] = useState({ reason_not_met: "", action_plan: "" });
   const [actionPlanLoading, setActionPlanLoading] = useState(false);
-  const [evidenceModal, setEvidenceModal] = useState({ open: false, userId: null, month: null, monthName: "", indicatorName: "" });
+  const [evidenceModal, setEvidenceModal] = useState({ open: false, trackingId: null, indicatorName: "" });
   const [filterStatus, setFilterStatus] = useState("all");
 
-  const { data: evidenceData, refetch: refetchEvidence, isLoading: evidenceLoading, error: evidenceError } = useQuery({
-    queryKey: ["evidenceByMonth", evidenceModal.userId, year, evidenceModal.month],
-    queryFn: () => evidenceModal.userId && evidenceModal.month ? evidenceApi.getEvidencesByMonth(year, evidenceModal.month, evidenceModal.userId) : Promise.resolve({ data: { evidences: [] } }),
-    enabled: !!evidenceModal.userId && !!evidenceModal.month,
+  const { data: evidenceData, isLoading: evidenceLoading, error: evidenceError } = useQuery({
+    queryKey: ["evidenceByTracking", evidenceModal.trackingId],
+    queryFn: () => evidenceModal.trackingId
+      ? approvalApi.getEvidenceByTracking(evidenceModal.trackingId)
+      : Promise.resolve({ data: { evidence: [] } }),
+    enabled: !!evidenceModal.trackingId,
   });
 
   const approveMutation = useMutation({
     mutationFn: (trackingId) => approvalApi.approveTracking(trackingId),
-    onSuccess: () => {
+    onSuccess: (response) => {
+      const tracking = response.data;
+      const trackingId = tracking.id;
+      const isMet = tracking.target_met;
+      const indicator = approveModal.indicatorData;
+      const monthObj = approveModal.monthData;
+
+      if (isMet) {
+        actionPlanApi.createActionPlan(trackingId, {
+          reason_not_met: "Meta cumplida satisfactoriamente",
+          action_plan: "Se alcanzó el objetivo establecido. Continuar con el mismo nivel de desempeño."
+        }).catch(() => {});
+      } else {
+        setActionPlanModal({
+          open: true,
+          month: { ...monthObj, tracking_id: trackingId },
+          indicator,
+          actionPlanId: null,
+        });
+        setActionPlanData({ reason_not_met: "", action_plan: "" });
+      }
+
       queryClient.invalidateQueries({ queryKey: ["team", "dashboard", year] });
-      setApproveModal({ open: false, tracking: null });
+      setApproveModal({ open: false, tracking: null, monthData: null, indicatorData: null });
     },
     onError: (error) => {
       alert(error.response?.data?.detail || "Error al aprobar");
@@ -79,13 +101,11 @@ export default function TeamDashboard() {
     },
   });
 
-  const handleOpenEvidenceModal = (month, indicator, userId) => {
+  const handleOpenEvidenceModal = (trackingId, indicatorName) => {
     setEvidenceModal({
       open: true,
-      userId,
-      month: month.month,
-      monthName: getMonthName(month.month),
-      indicatorName: indicator.indicator_name
+      trackingId,
+      indicatorName,
     });
   };
 
@@ -386,20 +406,15 @@ export default function TeamDashboard() {
                                                   : "-"}
                                             </td>
                                             <td className="px-4 py-2 text-sm">
-                                              {month.achieved_value != null && month.achieved_total != null ? (
-                                                (() => {
-                                                  const percentage = (Number(month.achieved_value) / Number(month.achieved_total)) * 100;
-                                                  return percentage >= Number(indicator.target_value) ? (
-                                                    <span className="text-green-600 font-medium">CUMPLIDO</span>
-                                                  ) : (
-                                                    <span className="text-red-600 font-medium">NO CUMPLIDO</span>
-                                                  );
-                                                })()
+                                              {month.achievement_percentage != null ? (
+                                                Number(month.achievement_percentage) >= Number(indicator.target_value)
+                                                  ? <span className="text-green-600 font-medium">CUMPLIDO</span>
+                                                  : <span className="text-red-600 font-medium">NO CUMPLIDO</span>
                                               ) : "-"}
                                             </td>
                                             <td className="px-4 py-2">{getStatusBadge(month)}</td>
                                             <td className="px-4 py-2 text-center">
-                                              <button onClick={() => handleOpenEvidenceModal(month, indicator, member.user_id)}
+                                              <button onClick={() => handleOpenEvidenceModal(month.tracking_id, indicator.indicator_name)}
                                                 className={`inline-flex items-center justify-center p-2 rounded-lg ${
                                                   (month.evidence_count && month.evidence_count > 0)
                                                     ? "text-green-600 hover:bg-green-50"
@@ -416,7 +431,7 @@ export default function TeamDashboard() {
                                             <td className="px-4 py-2 text-right space-x-1">
                                               {isInReview && (
                                                 <>
-                                                  <button onClick={() => setApproveModal({ open: true, tracking: { id: month.tracking_id, indicator: indicator.indicator_name, month: month.month, user: member.name } })}
+                                                  <button onClick={() => setApproveModal({ open: true, tracking: { id: month.tracking_id, indicator: indicator.indicator_name, month: month.month, user: member.name }, monthData: month, indicatorData: indicator })}
                                                     className="text-xs bg-green-600 text-white px-2 py-1 rounded hover:bg-green-700">
                                                     <ThumbsUp className="h-3 w-3 inline mr-1" />Aprobar
                                                   </button>
@@ -473,7 +488,7 @@ export default function TeamDashboard() {
           <div className="bg-white rounded-lg shadow-xl w-full max-w-md mx-4">
             <div className="flex justify-between items-center p-4 border-b">
               <h3 className="text-lg font-semibold flex items-center gap-2"><ThumbsUp className="h-5 w-5 text-green-600" /> Aprobar KPI</h3>
-              <button onClick={() => setApproveModal({ open: false, tracking: null })}
+              <button onClick={() => setApproveModal({ open: false, tracking: null, monthData: null, indicatorData: null })}
                 className="text-gray-400 hover:text-gray-600"><XCircle className="h-5 w-5" /></button>
             </div>
             <div className="p-4 space-y-4">
@@ -487,7 +502,7 @@ export default function TeamDashboard() {
                 </p>
               </div>
               <div className="flex gap-3">
-                <button onClick={() => setApproveModal({ open: false, tracking: null })}
+                <button onClick={() => setApproveModal({ open: false, tracking: null, monthData: null, indicatorData: null })}
                   className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50">Cancelar</button>
                 <button onClick={() => approveMutation.mutate(approveModal.tracking.id)}
                   disabled={approveMutation.isPending}
@@ -655,9 +670,9 @@ export default function TeamDashboard() {
             <div className="flex justify-between items-center p-4 border-b">
               <div>
                 <h3 className="text-lg font-semibold flex items-center gap-2"><Paperclip className="h-5 w-5" /> Evidencias</h3>
-                <p className="text-sm text-gray-500">{evidenceModal.monthName} - {evidenceModal.indicatorName}</p>
+                <p className="text-sm text-gray-500">{evidenceModal.indicatorName}</p>
               </div>
-              <button onClick={() => setEvidenceModal({ open: false, userId: null, month: null, monthName: "", indicatorName: "" })}
+              <button onClick={() => setEvidenceModal({ open: false, trackingId: null, indicatorName: "" })}
                 className="text-gray-400 hover:text-gray-600"><XCircle className="h-5 w-5" /></button>
             </div>
             <div className="p-4 overflow-auto flex-1">
@@ -665,14 +680,14 @@ export default function TeamDashboard() {
                 <p className="text-gray-500 text-center py-4">Cargando...</p>
               ) : evidenceError ? (
                 <p className="text-red-500 text-center py-4">Error al cargar evidencias</p>
-              ) : !evidenceData?.data?.evidences || evidenceData.data.evidences.length === 0 ? (
+              ) : !evidenceData?.data?.evidence || evidenceData.data.evidence.length === 0 ? (
                 <div className="text-center py-8">
                   <Paperclip className="h-8 w-8 mx-auto text-gray-300 mb-2" />
-                  <p className="text-gray-500">No hay evidencias para este mes</p>
+                  <p className="text-gray-500">No hay evidencias para este indicador</p>
                 </div>
               ) : (
                 <div className="space-y-2">
-                  {evidenceData?.data?.evidences?.map((ev) => (
+                  {evidenceData?.data?.evidence?.map((ev) => (
                     <div key={ev.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                       <div className="flex items-center gap-3">
                         {ev.file_path?.endsWith(".pdf") ? <FileText size={16} className="text-red-500" />
@@ -680,7 +695,7 @@ export default function TeamDashboard() {
                           : <File size={16} className="text-gray-500" />}
                         <a href={`${backendUrl}${ev.file_path}`} target="_blank" rel="noopener noreferrer"
                           className="text-sm text-blue-600 hover:underline">
-                          {ev.file_path?.split("/").pop()}
+                          {ev.original_filename || ev.file_path?.split("/").pop()}
                         </a>
                       </div>
                     </div>
@@ -689,7 +704,7 @@ export default function TeamDashboard() {
               )}
             </div>
             <div className="p-4 border-t">
-              <button onClick={() => setEvidenceModal({ open: false, userId: null, month: null, monthName: "", indicatorName: "" })}
+              <button onClick={() => setEvidenceModal({ open: false, trackingId: null, indicatorName: "" })}
                 className="w-full px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700">Cerrar</button>
             </div>
           </div>
