@@ -271,12 +271,12 @@ export default function EmployeeDashboard() {
                                   : status === "approved"
                                   ? "Aprobado"
                                   : monthData.achieved_value != null
-                                  ? `${monthData.achievement_percentage?.toFixed(1) || ""}%`
+                                  ? `${(monthData.achievement_percentage != null ? Number(monthData.achievement_percentage).toFixed(1) : "")}%`
                                   : "Pendiente"
                               }
                             >
                               {monthData.achievement_percentage != null
-                                ? Math.round(monthData.achievement_percentage)
+                                ? Math.round(Number(monthData.achievement_percentage))
                                 : monthData.approval_status === "EN_REVISION"
                                 ? <AlertTriangle className="h-3 w-3" />
                                 : monthData.approval_status === "APROBADO"

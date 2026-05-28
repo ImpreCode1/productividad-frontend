@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Paperclip, Upload, Trash2, FileText, Image, File, Send, CheckCircle, XCircle, Clock, AlertTriangle } from "lucide-react";
+import { Paperclip, Upload, Trash2, FileText, Image, File, Send, CheckCircle, XCircle, Clock, AlertTriangle, Save } from "lucide-react";
 import * as assignmentsApi from "../../../api/assignments.api";
 import * as trackingApi from "../../../api/tracking.api";
 import * as approvalApi from "../../../api/approval.api";
@@ -24,6 +24,10 @@ export default function EvidencePage() {
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
   const [uploadFile, setUploadFile] = useState({});
   const [uploading, setUploading] = useState({});
+  const [values, setValues] = useState({});
+  const [dirty, setDirty] = useState({});
+  const [saving, setSaving] = useState({});
+  const [submitting, setSubmitting] = useState({});
   const queryClient = useQueryClient();
   const currentYear = new Date().getFullYear();
   const [year, setYear] = useState(currentYear);
@@ -52,7 +56,6 @@ export default function EvidencePage() {
     mutationFn: ({ assignmentId, file }) => approvalApi.uploadEvidenceToAssignment(assignmentId, file),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["myTracking", year] });
-      queryClient.invalidateQueries({ queryKey: ["myAssignments", year, selectedMonth] });
       setUploadFile({});
     },
     onError: (error) => {
@@ -65,11 +68,36 @@ export default function EvidencePage() {
     mutationFn: (evidenceId) => api.delete(`/evidence/${evidenceId}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["myTracking", year] });
-      queryClient.invalidateQueries({ queryKey: ["myAssignments", year, selectedMonth] });
     },
     onError: (error) => {
       alert(error.response?.data?.detail || "Error al eliminar evidencia");
     },
+  });
+
+  const valueMutation = useMutation({
+    mutationFn: ({ assignmentId, achievedValue, achievedTotal }) =>
+      approvalApi.setTrackingValue(assignmentId, achievedValue, achievedTotal),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["myTracking", year] });
+      queryClient.invalidateQueries({ queryKey: ["myAssignments", year, selectedMonth] });
+    },
+    onError: (error) => {
+      alert(error.response?.data?.detail || "Error al guardar valor");
+    },
+    onSettled: () => setSaving({}),
+  });
+
+  const submitMutation = useMutation({
+    mutationFn: (assignmentId) => approvalApi.submitAssignment(assignmentId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["myTracking", year] });
+      queryClient.invalidateQueries({ queryKey: ["myAssignments", year, selectedMonth] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard", "me", year] });
+    },
+    onError: (error) => {
+      alert(error.response?.data?.detail || "Error al enviar a revisión");
+    },
+    onSettled: () => setSubmitting({}),
   });
 
   const handleUpload = (assignmentId) => {
@@ -77,6 +105,26 @@ export default function EvidencePage() {
     if (!file) return;
     setUploading(prev => ({ ...prev, [assignmentId]: true }));
     uploadMutation.mutate({ assignmentId, file });
+  };
+
+  const handleSaveValue = (assignmentId) => {
+    const v = values[assignmentId];
+    if (!v || v.achieved_value == null || v.achieved_value === "") {
+      alert("Ingresa un valor logrado");
+      return;
+    }
+    setSaving(prev => ({ ...prev, [assignmentId]: true }));
+    valueMutation.mutate({
+      assignmentId,
+      achievedValue: parseFloat(v.achieved_value),
+      achievedTotal: v.achieved_total != null && v.achieved_total !== "" ? parseFloat(v.achieved_total) : null,
+    });
+  };
+
+  const handleSubmit = (assignmentId) => {
+    if (!window.confirm("¿Enviar este KPI a revisión?")) return;
+    setSubmitting(prev => ({ ...prev, [assignmentId]: true }));
+    submitMutation.mutate(assignmentId);
   };
 
   const getFileIcon = (path) => {
@@ -113,7 +161,7 @@ export default function EvidencePage() {
           <Paperclip className="h-8 w-8 text-blue-600" />
           <div>
             <h1 className="text-2xl font-bold text-gray-900">Evidencias</h1>
-            <p className="text-sm text-gray-500">Sube evidencias por cada KPI mensual</p>
+            <p className="text-sm text-gray-500">Registra tu valor y sube evidencias por cada KPI</p>
           </div>
         </div>
         <select
@@ -171,6 +219,16 @@ export default function EvidencePage() {
                   const rejectionComment = tracking?.rejection_comment;
                   const isBlocked = status === "APROBADO";
                   const isRejected = status === "RECHAZADO";
+                  const isInReview = status === "EN_REVISION";
+                  const trackingId = tracking?.id;
+
+                  const currentVal = dirty[assignment.id]
+                    ? (values[assignment.id] || {})
+                    : {
+                        achieved_value: tracking?.achieved_value ?? "",
+                        achieved_total: tracking?.achieved_total ?? "",
+                      };
+                  const canSubmit = status === "PENDIENTE" || status === "RECHAZADO";
 
                   return (
                     <div key={assignment.id} className="border border-gray-200 rounded-lg overflow-hidden">
@@ -191,9 +249,58 @@ export default function EvidencePage() {
                         )}
                       </div>
 
-                      <div className="p-4">
+                      <div className="p-4 space-y-4">
+                        {!isBlocked && !isInReview && (
+                          <div className="p-3 bg-white border border-gray-200 rounded-lg">
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 items-end">
+                              <div>
+                                <label className="block text-xs font-medium text-gray-600 mb-1">Valor logrado</label>
+                                <input
+                                  type="number"
+                                  step="0.01"
+                                  placeholder="Ej: 85"
+                                  value={currentVal.achieved_value ?? ""}
+                                  onChange={(e) => {
+                                    setDirty(prev => ({ ...prev, [assignment.id]: true }));
+                                    setValues(prev => ({
+                                      ...prev,
+                                      [assignment.id]: { ...prev[assignment.id], achieved_value: e.target.value }
+                                    }));
+                                  }}
+                                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500"
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-xs font-medium text-gray-600 mb-1">Total (opcional)</label>
+                                <input
+                                  type="number"
+                                  step="0.01"
+                                  placeholder="Ej: 100"
+                                  value={currentVal.achieved_total ?? ""}
+                                  onChange={(e) => {
+                                    setDirty(prev => ({ ...prev, [assignment.id]: true }));
+                                    setValues(prev => ({
+                                      ...prev,
+                                      [assignment.id]: { ...prev[assignment.id], achieved_total: e.target.value }
+                                    }));
+                                  }}
+                                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500"
+                                />
+                              </div>
+                              <button
+                                onClick={() => handleSaveValue(assignment.id)}
+                                disabled={saving[assignment.id]}
+                                className="flex items-center justify-center gap-1 px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                              >
+                                <Save className="h-4 w-4" />
+                                {saving[assignment.id] ? "Guardando..." : "Guardar valor"}
+                              </button>
+                            </div>
+                          </div>
+                        )}
+
                         {!isBlocked && (
-                          <div className="mb-4 p-3 border-2 border-dashed border-gray-300 rounded-lg">
+                          <div className="p-3 border-2 border-dashed border-gray-300 rounded-lg">
                             <input
                               type="file"
                               accept="application/pdf,image/png,image/jpeg"
@@ -216,11 +323,24 @@ export default function EvidencePage() {
                           </div>
                         )}
 
-                        <h4 className="text-sm font-medium text-gray-700 mb-2">
-                          Evidencias ({evidences.length})
-                        </h4>
+                        <div className="flex items-center justify-between">
+                          <h4 className="text-sm font-medium text-gray-700">
+                            Evidencias ({evidences.length})
+                          </h4>
+                          {canSubmit && (
+                            <button
+                              onClick={() => handleSubmit(assignment.id)}
+                              disabled={submitting[assignment.id]}
+                              className="flex items-center gap-1 px-3 py-1.5 bg-green-600 text-white text-xs rounded-lg hover:bg-green-700 disabled:opacity-50"
+                            >
+                              <Send className="h-3 w-3" />
+                              {submitting[assignment.id] ? "Enviando..." : "Enviar a revisión"}
+                            </button>
+                          )}
+                        </div>
+
                         {evidences.length === 0 ? (
-                          <p className="text-xs text-gray-400 text-center py-3">Sin evidencias aún</p>
+                          <p className="text-xs text-gray-400 text-center py-1">Sin evidencias aún</p>
                         ) : (
                           <div className="space-y-1">
                             {evidences.map((ev) => (

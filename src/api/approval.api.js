@@ -30,3 +30,9 @@ export const uploadEvidenceToAssignment = (assignmentId, file) => {
 
 export const getEvidenceByTracking = (trackingId) =>
   api.get(`/evidence/${trackingId}`);
+
+export const setTrackingValue = (assignmentId, achievedValue, achievedTotal = null) => {
+  const payload = { achieved_value: achievedValue };
+  if (achievedTotal != null) payload.achieved_total = achievedTotal;
+  return api.patch(`/evidence/assignment/${assignmentId}/value`, payload);
+};
