@@ -3,6 +3,9 @@ import api from "./client";
 export const submitTracking = (trackingId) =>
   api.patch(`/tracking/${trackingId}/submit`);
 
+export const submitAssignment = (assignmentId) =>
+  api.post(`/tracking/assignment/${assignmentId}/submit`);
+
 export const approveTracking = (trackingId) =>
   api.patch(`/tracking/${trackingId}/approve`);
 
@@ -13,6 +16,14 @@ export const uploadEvidenceToTracking = (trackingId, file) => {
   const formData = new FormData();
   formData.append("file", file);
   return api.post(`/evidence/tracking/${trackingId}`, formData, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
+};
+
+export const uploadEvidenceToAssignment = (assignmentId, file) => {
+  const formData = new FormData();
+  formData.append("file", file);
+  return api.post(`/evidence/assignment/${assignmentId}`, formData, {
     headers: { "Content-Type": "multipart/form-data" },
   });
 };

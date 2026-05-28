@@ -107,6 +107,7 @@ export default function EmployeeDashboard() {
   };
 
   const getMonthStatus = (month, targetValue) => {
+    if (!month) return "pending";
     if (month.approval_status === "APROBADO") return "approved";
     if (month.approval_status === "EN_REVISION") return "in_review";
     if (month.approval_status === "RECHAZADO") return "rejected";

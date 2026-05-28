@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Paperclip, Upload, Trash2, FileText, Image, File, Send, CheckCircle, XCircle, Clock, AlertTriangle } from "lucide-react";
+import * as assignmentsApi from "../../../api/assignments.api";
 import * as trackingApi from "../../../api/tracking.api";
 import * as approvalApi from "../../../api/approval.api";
 import api from "../../../api/client";
@@ -27,33 +28,31 @@ export default function EvidencePage() {
   const currentYear = new Date().getFullYear();
   const [year, setYear] = useState(currentYear);
 
-  const { data: trackingData, isLoading: trackingLoading } = useQuery({
+  const { data: assignmentsData, isLoading: assignmentsLoading } = useQuery({
+    queryKey: ["myAssignments", year, selectedMonth],
+    queryFn: () => assignmentsApi.getMyAssignments(year, selectedMonth),
+  });
+
+  const { data: trackingData } = useQuery({
     queryKey: ["myTracking", year],
     queryFn: () => trackingApi.getMyTracking(year),
   });
 
-  const trackingList = trackingData?.data?.tracking || [];
-  const monthTrackings = trackingList.filter(t => t.month === selectedMonth);
+  const assignments = assignmentsData?.data?.assignments || [];
+  const allTrackings = trackingData?.data?.tracking || [];
 
-  const groupedByIndicator = monthTrackings.reduce((acc, t) => {
-    const assignmentId = t.assignment_id;
-    if (!acc[assignmentId]) {
-      acc[assignmentId] = {
-        assignment_id: assignmentId,
-        indicator_name: t.indicator_name || "Indicador",
-        target_value: t.target_value,
-        weight: t.weight,
-        trackings: [],
-      };
+  const trackingByAssignment = {};
+  allTrackings.forEach(t => {
+    if (t.assignment_id) {
+      trackingByAssignment[t.assignment_id] = t;
     }
-    acc[assignmentId].trackings.push(t);
-    return acc;
-  }, {});
+  });
 
   const uploadMutation = useMutation({
-    mutationFn: ({ trackingId, file }) => approvalApi.uploadEvidenceToTracking(trackingId, file),
+    mutationFn: ({ assignmentId, file }) => approvalApi.uploadEvidenceToAssignment(assignmentId, file),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["myTracking", year] });
+      queryClient.invalidateQueries({ queryKey: ["myAssignments", year, selectedMonth] });
       setUploadFile({});
     },
     onError: (error) => {
@@ -66,17 +65,18 @@ export default function EvidencePage() {
     mutationFn: (evidenceId) => api.delete(`/evidence/${evidenceId}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["myTracking", year] });
+      queryClient.invalidateQueries({ queryKey: ["myAssignments", year, selectedMonth] });
     },
     onError: (error) => {
       alert(error.response?.data?.detail || "Error al eliminar evidencia");
     },
   });
 
-  const handleUpload = (trackingId) => {
-    const file = uploadFile[trackingId];
+  const handleUpload = (assignmentId) => {
+    const file = uploadFile[assignmentId];
     if (!file) return;
-    setUploading(prev => ({ ...prev, [trackingId]: true }));
-    uploadMutation.mutate({ trackingId, file });
+    setUploading(prev => ({ ...prev, [assignmentId]: true }));
+    uploadMutation.mutate({ assignmentId, file });
   };
 
   const getFileIcon = (path) => {
@@ -97,6 +97,14 @@ export default function EvidencePage() {
       </span>
     );
   };
+
+  const hasData = (monthIndex) => {
+    const monthAssignments = assignments.filter(a => a.month === null || a.month === monthIndex + 1);
+    if (monthAssignments.length > 0) return true;
+    return allTrackings.some(t => t.month === monthIndex + 1);
+  };
+
+  const monthAssignments = assignments.filter(a => a.month === null || a.month === selectedMonth);
 
   return (
     <div className="space-y-6">
@@ -122,25 +130,22 @@ export default function EvidencePage() {
         <div className="bg-white rounded-lg shadow p-4">
           <h2 className="text-lg font-semibold text-gray-800 mb-4">Selecciona el Mes</h2>
           <div className="grid grid-cols-3 gap-2">
-            {months.map((m, i) => {
-              const hasData = trackingList.some(t => t.month === i + 1 && (t.achieved_value != null || t.evidence_count > 0));
-              return (
-                <button
-                  key={i}
-                  onClick={() => setSelectedMonth(i + 1)}
-                  className={`p-3 rounded-lg border transition-all ${
-                    selectedMonth === i + 1
-                      ? "border-blue-500 bg-blue-50"
-                      : "border-gray-200 hover:border-gray-300"
-                  }`}
-                >
-                  <div className="text-sm font-medium text-gray-700">{m}</div>
-                  {hasData && (
-                    <div className="text-xs text-green-600 mt-1">✓ datos</div>
-                  )}
-                </button>
-              );
-            })}
+            {months.map((m, i) => (
+              <button
+                key={i}
+                onClick={() => setSelectedMonth(i + 1)}
+                className={`p-3 rounded-lg border transition-all ${
+                  selectedMonth === i + 1
+                    ? "border-blue-500 bg-blue-50"
+                    : "border-gray-200 hover:border-gray-300"
+                }`}
+              >
+                <div className="text-sm font-medium text-gray-700">{m}</div>
+                {hasData(i) && (
+                  <div className="text-xs text-green-600 mt-1">✓ datos</div>
+                )}
+              </button>
+            ))}
           </div>
         </div>
 
@@ -150,31 +155,31 @@ export default function EvidencePage() {
               {months[selectedMonth - 1]} {year}
             </h2>
 
-            {trackingLoading ? (
+            {assignmentsLoading ? (
               <p className="text-gray-500">Cargando...</p>
-            ) : Object.keys(groupedByIndicator).length === 0 ? (
+            ) : monthAssignments.length === 0 ? (
               <div className="text-center py-8">
                 <Paperclip className="h-12 w-12 mx-auto text-gray-300 mb-4" />
                 <p className="text-gray-500">No hay indicadores asignados para este mes</p>
               </div>
             ) : (
               <div className="space-y-6">
-                {Object.values(groupedByIndicator).map((group) => {
-                  const trackingId = group.trackings[0]?.id;
-                  const evidences = group.trackings[0]?.evidences || [];
-                  const status = group.trackings[0]?.approval_status || "PENDIENTE";
-                  const rejectionComment = group.trackings[0]?.rejection_comment;
+                {monthAssignments.map((assignment) => {
+                  const tracking = trackingByAssignment[assignment.id];
+                  const evidences = tracking?.evidences || [];
+                  const status = tracking?.approval_status || "PENDIENTE";
+                  const rejectionComment = tracking?.rejection_comment;
                   const isBlocked = status === "APROBADO";
                   const isRejected = status === "RECHAZADO";
 
                   return (
-                    <div key={group.assignment_id} className="border border-gray-200 rounded-lg overflow-hidden">
+                    <div key={assignment.id} className="border border-gray-200 rounded-lg overflow-hidden">
                       <div className="px-4 py-3 bg-gray-50 border-b border-gray-200">
                         <div className="flex items-center justify-between">
                           <div>
-                            <h3 className="font-medium text-gray-900">{group.indicator_name}</h3>
+                            <h3 className="font-medium text-gray-900">{assignment.indicator_name}</h3>
                             <p className="text-xs text-gray-500">
-                              Meta: {group.target_value}% • Peso: {group.weight}%
+                              Meta: {assignment.target_value}% • Peso: {assignment.weight}%
                             </p>
                           </div>
                           <StatusBadge status={status} />
@@ -192,19 +197,19 @@ export default function EvidencePage() {
                             <input
                               type="file"
                               accept="application/pdf,image/png,image/jpeg"
-                              onChange={(e) => setUploadFile(prev => ({ ...prev, [trackingId]: e.target.files[0] }))}
+                              onChange={(e) => setUploadFile(prev => ({ ...prev, [assignment.id]: e.target.files[0] }))}
                               className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
                             />
-                            {uploadFile[trackingId] && (
+                            {uploadFile[assignment.id] && (
                               <div className="mt-2 flex items-center justify-between">
-                                <span className="text-sm text-gray-700">{uploadFile[trackingId].name}</span>
+                                <span className="text-sm text-gray-700">{uploadFile[assignment.id].name}</span>
                                 <button
-                                  onClick={() => handleUpload(trackingId)}
-                                  disabled={uploading[trackingId]}
+                                  onClick={() => handleUpload(assignment.id)}
+                                  disabled={uploading[assignment.id]}
                                   className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 disabled:opacity-50"
                                 >
                                   <Upload className="h-4 w-4 inline mr-1" />
-                                  {uploading[trackingId] ? "Subiendo..." : "Subir"}
+                                  {uploading[assignment.id] ? "Subiendo..." : "Subir"}
                                 </button>
                               </div>
                             )}
