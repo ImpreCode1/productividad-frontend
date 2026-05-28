@@ -1,0 +1,21 @@
+import api from "./client";
+
+export const submitTracking = (trackingId) =>
+  api.patch(`/tracking/${trackingId}/submit`);
+
+export const approveTracking = (trackingId) =>
+  api.patch(`/tracking/${trackingId}/approve`);
+
+export const rejectTracking = (trackingId, comment) =>
+  api.patch(`/tracking/${trackingId}/reject`, { comment });
+
+export const uploadEvidenceToTracking = (trackingId, file) => {
+  const formData = new FormData();
+  formData.append("file", file);
+  return api.post(`/evidence/tracking/${trackingId}`, formData, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
+};
+
+export const getEvidenceByTracking = (trackingId) =>
+  api.get(`/evidence/${trackingId}`);

@@ -10,6 +10,7 @@ import {
   Paperclip,
   User,
   Mail,
+  Settings,
 } from "lucide-react";
 
 const getMenuSections = (roles = []) => {
@@ -75,6 +76,7 @@ const getMenuSections = (roles = []) => {
         { path: "/teams", label: "Equipos", icon: Users },
         { path: "/users", label: "Usuarios", icon: UserCog },
         { path: "/notifications", label: "Notificaciones", icon: Mail },
+        { path: "/approval-config", label: "Config. Carga", icon: Settings },
       ],
     });
   }

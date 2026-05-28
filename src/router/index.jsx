@@ -16,6 +16,7 @@ import TeamsPage from "../features/teams/pages/TeamsPage";
 import ActionPlanPage from "../features/actionPlan/pages/ActionPlanPage";
 import EvidencePage from "../features/evidence/pages/EvidencePage";
 import NotificationsPage from "../features/admin/pages/NotificationsPage";
+import ApprovalConfigPage from "../features/admin/pages/ApprovalConfigPage";
 
 export default function AppRouter() {
   return (
@@ -83,6 +84,11 @@ export default function AppRouter() {
           <Route
             path="notifications"
             element={<NotificationsPage />}
+          />
+
+          <Route
+            path="approval-config"
+            element={<ApprovalConfigPage />}
           />
         </Route>
 
