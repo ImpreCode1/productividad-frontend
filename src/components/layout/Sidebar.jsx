@@ -1,5 +1,6 @@
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "../../hooks/useAuth";
+import { translateRoles } from "../../utils/auth";
 import {
   LayoutDashboard,
   Users,
@@ -8,6 +9,7 @@ import {
   FileText,
   Paperclip,
   User,
+  Mail,
 } from "lucide-react";
 
 const getMenuSections = (roles = []) => {
@@ -45,14 +47,7 @@ const getMenuSections = (roles = []) => {
         { path: "/action-plan", label: "Planes de Acción", icon: FileText },
       ],
     });
-  } else if (isLeader && !isAdmin) {
-    sections.push({
-      title: "Operación",
-      items: [
-        { path: "/action-plan", label: "Planes de Acción", icon: FileText },
-      ],
-    });
-  } else if (isAdmin) {
+  } else if (isLeader) {
     sections.push({
       title: "Operación",
       items: [
@@ -62,7 +57,7 @@ const getMenuSections = (roles = []) => {
   }
 
   // Gestión
-  if (isLeader || isAdmin) {
+  if (isLeader) {
     sections.push({
       title: "Gestión",
       items: [
@@ -79,6 +74,7 @@ const getMenuSections = (roles = []) => {
         { path: "/assignments", label: "Indicadores", icon: Target },
         { path: "/teams", label: "Equipos", icon: Users },
         { path: "/users", label: "Usuarios", icon: UserCog },
+        { path: "/notifications", label: "Notificaciones", icon: Mail },
       ],
     });
   }
@@ -148,7 +144,7 @@ export default function Sidebar() {
           {user?.name || "Cargando..."}
         </p>
         <p className="text-xs text-gray-400 truncate">
-          {user?.roles?.join(", ") || ""}
+          {translateRoles(user?.roles) || ""}
         </p>
       </div>
     </aside>

@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { LayoutDashboard, Users, Target, CheckCircle, XCircle, Paperclip, ClipboardList, ChevronDown, ChevronRight, FileText, Briefcase, Check, AlertCircle } from "lucide-react";
+import { LayoutDashboard, Users, Target, CheckCircle, XCircle, Paperclip, ClipboardList, ChevronDown, ChevronRight, FileText, Briefcase, Check, AlertCircle, Building2, Download } from "lucide-react";
 import api from "../../../api/client";
+import { getAreas } from "../../../api/users.api";
 
 const monthsList = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
 
@@ -18,14 +19,54 @@ const getMonthStatus = (monthData, targetValue) => {
 export default function AdminDashboard() {
   const currentYear = new Date().getFullYear();
   const [year, setYear] = useState(currentYear);
+  const [selectedArea, setSelectedArea] = useState("");
   const [expandedTeams, setExpandedTeams] = useState({});
   const [expandedUsers, setExpandedUsers] = useState({});
   const [expandedIndicators, setExpandedIndicators] = useState({});
+  const [downloading, setDownloading] = useState(false);
+
+  const handleDownloadReport = async () => {
+    setDownloading(true);
+    try {
+      const token = sessionStorage.getItem("hydra_token");
+      const params = new URLSearchParams({ year: year.toString() });
+      if (selectedArea) params.append("area", selectedArea);
+      const response = await fetch(
+        `${import.meta.env.VITE_API_URL}/dashboard/global/report?${params}`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      if (!response.ok) throw new Error("Error al descargar reporte");
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `reporte_kpi_${year}.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error("Error downloading report:", error);
+      alert("Error al descargar el reporte");
+    } finally {
+      setDownloading(false);
+    }
+  };
+
+  const { data: areas } = useQuery({
+    queryKey: ["areas"],
+    queryFn: async () => {
+      const { data } = await getAreas();
+      return data;
+    },
+    staleTime: 5 * 60 * 1000,
+  });
 
   const { data: globalData, isLoading } = useQuery({
-    queryKey: ["dashboard", "global", year],
+    queryKey: ["dashboard", "global", year, selectedArea],
     queryFn: async () => {
       const params = new URLSearchParams({ year: year.toString() });
+      if (selectedArea) params.append("area", selectedArea);
       const { data } = await api.get(`/dashboard/global?${params}`);
       return data;
     },
@@ -65,6 +106,20 @@ export default function AdminDashboard() {
         </div>
 
         <div className="flex items-center gap-3">
+          <div className="relative">
+            <Building2 className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <select
+              value={selectedArea}
+              onChange={(e) => setSelectedArea(e.target.value)}
+              className="pl-9 pr-8 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 appearance-none bg-white min-w-[200px]"
+            >
+              <option value="">Todas las Vicepresidencias</option>
+              {areas?.map((area) => (
+                <option key={area} value={area}>{area}</option>
+              ))}
+            </select>
+          </div>
+
           <select
             value={year}
             onChange={(e) => setYear(Number(e.target.value))}
@@ -74,6 +129,15 @@ export default function AdminDashboard() {
             <option value={currentYear - 1}>{currentYear - 1}</option>
             <option value={currentYear - 2}>{currentYear - 2}</option>
           </select>
+
+          <button
+            onClick={handleDownloadReport}
+            disabled={downloading}
+            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          >
+            <Download className="h-4 w-4" />
+            {downloading ? "Descargando..." : "Descargar Reporte Excel"}
+          </button>
         </div>
       </div>
 
@@ -305,7 +369,7 @@ export default function AdminDashboard() {
                                                   : "-"}
                                               </div>
                                               <div className="flex justify-center gap-0.5 mt-0.5">
-                                                {monthData?.has_evidence && <span className="text-[8px]">📎</span>}
+                                                {monthData?.has_evidence && <span className="text-[8px]"></span>}
                                                 {monthData?.has_action_plan && <span className="text-[8px]"></span>}
                                               </div>
                                             </div>

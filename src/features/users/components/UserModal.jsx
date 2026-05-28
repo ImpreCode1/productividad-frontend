@@ -1,42 +1,61 @@
 import { useState, useMemo, useEffect } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { Modal } from "../../../components/ui/Modal";
 import { useUsers, useUserRoles, useAssignLeader } from "../hooks/useUsers";
 import * as rolesApi from "../../../api/roles.api";
 import * as usersApi from "../../../api/users.api";
+import { getAreas } from "../../../api/users.api";
+import { translateRole } from "../../../utils/auth";
 
 export function UserModal({ isOpen, onClose, user }) {
-  const queryClient = useQueryClient();
+  try {
+    const queryClient = useQueryClient();
 
-  const { data: users } = useUsers();
-  const { data: roles } = useUserRoles();
-  const assignLeaderMutation = useAssignLeader();
-  const assignRolesMutation = useAssignRolesToUser(queryClient);
-  const statusMutation = useUpdateUserStatus(queryClient);
-  const updateUserMutation = useUpdateUser(queryClient);
+    const { data: users } = useUsers();
+    const { data: roles } = useUserRoles();
+    const areasQuery = useQuery({
+      queryKey: ["areas"],
+      queryFn: async () => {
+        const { data } = await getAreas();
+        return data;
+      },
+      staleTime: 5 * 60 * 1000,
+    });
+    const assignLeaderMutation = useAssignLeader();
+    const assignRolesMutation = useAssignRolesToUser(queryClient);
+    const statusMutation = useUpdateUserStatus(queryClient);
+    const updateUserMutation = useUpdateUser(queryClient);
 
-  if (!isOpen || !user) return null;
+    if (!isOpen || !user) return null;
 
-  return (
-    <UserForm
-      user={user}
-      users={users}
-      roles={roles}
-      onClose={onClose}
-      assignLeaderMutation={assignLeaderMutation}
-      assignRolesMutation={assignRolesMutation}
-      statusMutation={statusMutation}
-      updateUserMutation={updateUserMutation}
-    />
-  );
+    return (
+      <UserForm
+        user={user}
+        users={users}
+        roles={roles}
+        areas={areasQuery.data}
+        onClose={onClose}
+        assignLeaderMutation={assignLeaderMutation}
+        assignRolesMutation={assignRolesMutation}
+        statusMutation={statusMutation}
+        updateUserMutation={updateUserMutation}
+      />
+    );
+  } catch (error) {
+    console.error("Error rendering UserModal:", error);
+    return null;
+  }
 }
 
-function UserForm({ user, users, roles, onClose, assignLeaderMutation, assignRolesMutation, statusMutation, updateUserMutation }) {
+function UserForm({ user, users, roles, areas, onClose, assignLeaderMutation, assignRolesMutation, statusMutation, updateUserMutation }) {
   const [activeTab, setActiveTab] = useState("info");
   const [localUser, setLocalUser] = useState(user);
+  const [leaderSearch, setLeaderSearch] = useState("");
+  const [showLeaderDropdown, setShowLeaderDropdown] = useState(false);
 
   useEffect(() => {
     setLocalUser(user);
+    setLeaderSearch("");
   }, [user]);
 
   const leaderId = localUser?.leader_id || "";
@@ -48,6 +67,12 @@ function UserForm({ user, users, roles, onClose, assignLeaderMutation, assignRol
     () => users?.filter((u) => u.id !== user?.id) || [],
     [users, user]
   );
+
+  const filteredLeaders = useMemo(() => {
+    if (!leaderSearch) return leaders;
+    const q = leaderSearch.toLowerCase();
+    return leaders.filter(l => l.name?.toLowerCase().includes(q));
+  }, [leaders, leaderSearch]);
 
   const handleSaveInfo = async () => {
     try {
@@ -202,12 +227,16 @@ function UserForm({ user, users, roles, onClose, assignLeaderMutation, assignRol
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Vicepresidencia
               </label>
-              <input
-                type="text"
+              <select
                 value={localUser?.area || ""}
                 onChange={(e) => updateField("area", e.target.value)}
                 className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              />
+              >
+                <option value="">Seleccionar...</option>
+                {areas?.map((area) => (
+                  <option key={area} value={area}>{area}</option>
+                ))}
+              </select>
             </div>
             <div className="col-span-2">
               <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -292,22 +321,60 @@ function UserForm({ user, users, roles, onClose, assignLeaderMutation, assignRol
             </p>
           </div>
 
-          <div>
+          <div className="relative">
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Líder
             </label>
-            <select
-              value={leaderId}
-              onChange={(e) => updateField("leader_id", e.target.value)}
+            <input
+              type="text"
+              value={leaderId && !showLeaderDropdown ? (leaders.find(l => l.id === leaderId)?.name || "Sin líder asignado") : leaderSearch}
+              onChange={(e) => {
+                setLeaderSearch(e.target.value);
+                updateField("leader_id", "");
+                setShowLeaderDropdown(true);
+              }}
+              onFocus={() => setShowLeaderDropdown(true)}
+              onBlur={() => setTimeout(() => setShowLeaderDropdown(false), 200)}
+              placeholder="Buscar líder..."
               className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            >
-              <option value="">Sin líder asignado</option>
-              {leaders.map((leader) => (
-                <option key={leader.id} value={leader.id}>
-                  {leader.name}
-                </option>
-              ))}
-            </select>
+            />
+            {showLeaderDropdown && (
+              <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                <button
+                  type="button"
+                  onMouseDown={() => {
+                    updateField("leader_id", "");
+                    setLeaderSearch("");
+                    setShowLeaderDropdown(false);
+                  }}
+                  className={`w-full text-left px-3 py-2 text-sm hover:bg-blue-50 transition-colors ${
+                    !leaderId ? "bg-blue-50 text-blue-700 font-medium" : "text-gray-500"
+                  }`}
+                >
+                  Sin líder asignado
+                </button>
+                {filteredLeaders.length === 0 ? (
+                  <div className="px-3 py-2 text-sm text-gray-400">Sin resultados</div>
+                ) : (
+                  filteredLeaders.map((leader) => (
+                    <button
+                      key={leader.id}
+                      type="button"
+                      onMouseDown={() => {
+                        updateField("leader_id", leader.id);
+                        setLeaderSearch(leader.name);
+                        setShowLeaderDropdown(false);
+                      }}
+                      className={`w-full text-left px-3 py-2 text-sm hover:bg-blue-50 transition-colors ${
+                        leaderId === leader.id ? "bg-blue-50 text-blue-700 font-medium" : "text-gray-700"
+                      }`}
+                    >
+                      {leader.name}
+                    </button>
+                  ))
+                )}
+              </div>
+            )}
           </div>
 
           <button
@@ -340,7 +407,7 @@ function UserForm({ user, users, roles, onClose, assignLeaderMutation, assignRol
                 />
                 <div className="ml-3">
                   <span className="text-sm font-medium text-gray-900">
-                    {role.name}
+                    {translateRole(role.name)}
                   </span>
                 </div>
               </label>

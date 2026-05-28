@@ -1,4 +1,5 @@
 import { useAuth } from "../../hooks/useAuth";
+import { translateRoles } from "../../utils/auth";
 
 export default function Header() {
   const { user, logout } = useAuth();
@@ -11,8 +12,8 @@ export default function Header() {
         </h2>
         <div className="flex items-center gap-4">
           <span className="text-sm text-gray-600">
-            {user?.name || "Usuario"} 
-            ({user?.roles?.join(", ") || "sin roles"})
+            {user?.name || "Usuario"}
+            ({translateRoles(user?.roles) || "sin roles"})
           </span>
           <button
             onClick={logout}

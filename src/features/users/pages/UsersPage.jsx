@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { UserCog, Upload, Search, Plus } from "lucide-react";
+import { UserCog, Upload, Plus } from "lucide-react";
 import { useUsers, useCreateUser } from "../hooks/useUsers";
 import UserList from "../components/UserList";
 import { UserModal } from "../components/UserModal";
@@ -7,7 +7,6 @@ import { ImportExcelModal } from "../components/ImportExcelModal";
 import { CreateUserModal } from "../components/CreateUserModal";
 
 export default function UsersPage() {
-  const [search, setSearch] = useState("");
   const [editUser, setEditUser] = useState(null);
   const [showImport, setShowImport] = useState(false);
   const [showUserModal, setShowUserModal] = useState(false);
@@ -15,13 +14,6 @@ export default function UsersPage() {
 
   const { data: users, isLoading, error } = useUsers();
   const createMutation = useCreateUser();
-
-  const filteredUsers = users?.filter(
-    (user) =>
-      user.name?.toLowerCase().includes(search.toLowerCase()) ||
-      user.email?.toLowerCase().includes(search.toLowerCase()) ||
-      user.document_number?.toLowerCase().includes(search.toLowerCase())
-  );
 
   const handleEdit = (user) => {
     setEditUser(user);
@@ -63,19 +55,6 @@ export default function UsersPage() {
         </div>
       </div>
 
-      <div className="bg-white rounded-lg shadow p-4">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
-          <input
-            type="text"
-            placeholder="Buscar por nombre, correo o documento..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-          />
-        </div>
-      </div>
-
       {isLoading ? (
         <div className="flex justify-center py-12">
           <div className="text-gray-500">Cargando usuarios...</div>
@@ -87,7 +66,7 @@ export default function UsersPage() {
           </p>
         </div>
       ) : (
-        <UserList users={filteredUsers} onEdit={handleEdit} />
+        <UserList users={users} onEdit={handleEdit} />
       )}
 
       <UserModal

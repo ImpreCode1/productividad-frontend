@@ -15,6 +15,7 @@ import TeamDashboard from "../features/leader/pages/TeamDashboard";
 import TeamsPage from "../features/teams/pages/TeamsPage";
 import ActionPlanPage from "../features/actionPlan/pages/ActionPlanPage";
 import EvidencePage from "../features/evidence/pages/EvidencePage";
+import NotificationsPage from "../features/admin/pages/NotificationsPage";
 
 export default function AppRouter() {
   return (
@@ -77,6 +78,11 @@ export default function AppRouter() {
           <Route
             path="assignments"
             element={<AssignmentsPage />}
+          />
+
+          <Route
+            path="notifications"
+            element={<NotificationsPage />}
           />
         </Route>
 

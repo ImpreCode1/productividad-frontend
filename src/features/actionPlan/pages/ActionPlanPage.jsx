@@ -27,17 +27,13 @@ export default function ActionPlanPage() {
   const isLeader = user?.roles?.includes("LEADER");
   const isEmployee = user?.roles?.includes("EMPLOYEE");
   const isLeaderAndEmployee = isLeader && isEmployee;
-  const isOnlyEmployee = isEmployee && !isLeader && !isAdmin;
-  const canSeeToggle = isAdmin || isLeaderAndEmployee;
-
-  // Para empleados: solo mis planes
-  // Para líderes+empleados: puede togglear entre mis planes y equipo
-  // Para líderes puros: solo equipo
-  // Para admins: puede togglear
+  const onlyEmployee = isEmployee && !isLeader && !isAdmin;
+  const onlyLeader = isLeader && !isEmployee && !isAdmin;
+  const showToggle = isLeaderAndEmployee;
 
   const getDefaultViewMode = () => {
-    if (isOnlyEmployee) return "my";
-    if (isLeader && !isAdmin && !isLeaderAndEmployee) return "team";
+    if (onlyEmployee) return "my";
+    if (onlyLeader) return "team";
     if (isLeaderAndEmployee) return "my";
     return "team";
   };
@@ -51,24 +47,20 @@ export default function ActionPlanPage() {
   const { data: teamActionPlans, isLoading: loadingTeam } = useQuery({
     queryKey: ["team", "action-plans", user?.id, year],
     queryFn: () => actionPlanApi.getTeamActionPlans(user.id, year),
-    enabled: !!user?.id && (isLeader || isAdmin),
+    enabled: !!user?.id && isLeader,
   });
 
   const getActionPlans = () => {
-    if (isOnlyEmployee) return myActionPlans;
-    if (isLeaderAndEmployee) {
-      if (viewMode === "my") return myActionPlans;
-      return teamActionPlans;
-    }
-    if (!isAdmin && isLeader) return teamActionPlans;
-    if (viewMode === "my") return myActionPlans;
-    return teamActionPlans;
+    if (onlyEmployee) return myActionPlans;
+    if (onlyLeader) return teamActionPlans;
+    if (isLeaderAndEmployee) return viewMode === "my" ? myActionPlans : teamActionPlans;
+    return viewMode === "my" ? myActionPlans : teamActionPlans;
   };
 
   const getIsLoading = () => {
-    if (isOnlyEmployee) return loadingMy;
+    if (onlyEmployee) return loadingMy;
+    if (onlyLeader) return loadingTeam;
     if (isLeaderAndEmployee) return viewMode === "my" ? loadingMy : loadingTeam;
-    if (!isAdmin && isLeader) return loadingTeam;
     return viewMode === "my" ? loadingMy : loadingTeam;
   };
 
@@ -105,7 +97,7 @@ export default function ActionPlanPage() {
   }, [actionPlans]);
 
   const plansByUser = useMemo(() => {
-    if (isOnlyEmployee) return null;
+    if (onlyEmployee) return null;
     const grouped = {};
     for (const plan of filteredPlans) {
       const key = plan.user_id || "unknown";
@@ -128,7 +120,7 @@ export default function ActionPlanPage() {
       }
     }
     return Object.values(grouped);
-  }, [filteredPlans, isOnlyEmployee]);
+  }, [filteredPlans, onlyEmployee]);
 
   const toggleUser = (userId) => {
     setExpandedUsers((prev) => ({ ...prev, [userId]: !prev[userId] }));
@@ -150,12 +142,12 @@ export default function ActionPlanPage() {
           <div>
             <h1 className="text-2xl font-bold text-gray-900">Planes de Acción</h1>
             <p className="text-gray-500 text-sm">
-              {isOnlyEmployee ? "Tus planes de acción" : isLeaderAndEmployee ? (viewMode === "my" ? "Tus planes de acción" : "Planes de acción de tu equipo") : isLeader && !isAdmin ? "Planes de acción de tu equipo" : (viewMode === "my" ? "Tus planes de acción" : "Planes de acción de tu equipo")}
+              {onlyEmployee ? "Tus planes de acción" : isLeaderAndEmployee ? (viewMode === "my" ? "Tus planes de acción" : "Planes de acción de tu equipo") : isLeader && !isAdmin ? "Planes de acción de tu equipo" : (viewMode === "my" ? "Tus planes de acción" : "Planes de acción de tu equipo")}
             </p>
           </div>
         </div>
         <div className="flex items-center gap-3">
-          {canSeeToggle && (
+          {showToggle && (
             <div className="flex bg-gray-100 rounded-lg p-1">
               <button
                 onClick={() => setViewMode("my")}
@@ -278,13 +270,13 @@ export default function ActionPlanPage() {
                 : "No hay planes de acción para este período"}
             </p>
           </div>
-        ) : isOnlyEmployee || viewMode === "my" ? (
+        ) : onlyEmployee || viewMode === "my" ? (
           <div className="divide-y divide-gray-200">
             {filteredPlans.map((plan) => (
               <PlanCard
                 key={plan.id}
                 plan={plan}
-                showUser={isOnlyEmployee}
+                showUser={onlyEmployee}
                 onView={() => setSelectedPlan(plan)}
               />
             ))}
