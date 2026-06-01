@@ -8,6 +8,12 @@ export const getAssignments = (year, month) => {
   return api.get(`/assignments/${params}`);
 };
 
+export const getMyAssignments = (year, month) => {
+  let params = year ? `?year=${year}` : "";
+  if (month) params += params ? `&month=${month}` : `?month=${month}`;
+  return api.get(`/assignments/me${params}`);
+};
+
 export const getUserAssignments = (userId, year, month) => {
   let params = `?user_id=${userId}&year=${year}`;
   if (month) params += `&month=${month}`;
