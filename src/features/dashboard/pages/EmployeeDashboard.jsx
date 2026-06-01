@@ -106,13 +106,35 @@ export default function EmployeeDashboard() {
     queryClient.invalidateQueries({ queryKey: ["dashboard", "me", year] });
   };
 
-  const getMonthStatus = (month, targetValue) => {
-    if (!month) return "pending";
-    if (month.approval_status === "APROBADO") return "approved";
-    if (month.approval_status === "EN_REVISION") return "in_review";
-    if (month.approval_status === "RECHAZADO") return "rejected";
-    if (month.achieved_value != null) return "completed";
-    return "pending";
+  const getCellStyle = (month, targetValue) => {
+    if (!month) return { bg: "bg-gray-50", text: "text-gray-300", icon: null, content: "-", title: "Sin datos" };
+
+    const pct = month.achievement_percentage;
+    const met = pct != null && Number(pct) >= Number(targetValue);
+    const approval = month.approval_status;
+
+    if (pct != null) {
+      const bg = met ? "bg-green-100" : "bg-red-100";
+      const text = met ? "text-green-700" : "text-red-700";
+      const rounded = Math.round(Number(pct));
+
+      if (approval === "EN_REVISION") {
+        return { bg, text, icon: <AlertTriangle className="h-3 w-3" />, content: null, title: met ? `Cumplido (${rounded}%) - En revisión` : `No cumplido (${rounded}%) - En revisión` };
+      }
+      if (approval === "APROBADO") {
+        return { bg, text, icon: <CheckCircle className="h-3 w-3" />, content: null, title: met ? `Cumplido - Aprobado` : `No cumplido - Aprobado` };
+      }
+      if (approval === "RECHAZADO") {
+        const comment = month.rejection_comment ? `: ${month.rejection_comment}` : "";
+        return { bg, text, icon: <XCircle className="h-3 w-3" />, content: null, title: met ? `Cumplido - Rechazado${comment}` : `No cumplido - Rechazado${comment}` };
+      }
+      return { bg, text, icon: null, content: rounded, title: met ? `Cumplido (${rounded}%)` : `No cumplido (${rounded}%)` };
+    }
+
+    if (month.achieved_value != null) {
+      return { bg: "bg-blue-50", text: "text-blue-700", icon: null, content: "-", title: "Valor registrado" };
+    }
+    return { bg: "bg-gray-100", text: "text-gray-400", icon: null, content: "-", title: "Pendiente" };
   };
 
   const toggleIndicator = (key) => {
@@ -251,42 +273,15 @@ export default function EmployeeDashboard() {
                     {Array.from({ length: 12 }, (_, i) => {
                       const monthNum = i + 1;
                       const monthData = indicator.months?.find(m => m.month === monthNum);
-                      const status = getMonthStatus(monthData, targetValue);
+                      const style = getCellStyle(monthData, targetValue);
                       return (
                         <td key={monthNum} className="px-1 py-2 text-center">
-                          {monthData ? (
-                            <div
-                              className={`w-8 h-8 rounded flex items-center justify-center text-xs font-medium cursor-pointer ${
-                                status === "approved" ? "bg-green-100 text-green-700" :
-                                status === "in_review" ? "bg-yellow-100 text-yellow-700" :
-                                status === "rejected" ? "bg-red-100 text-red-700" :
-                                status === "completed" ? "bg-blue-50 text-blue-700" :
-                                "bg-gray-100 text-gray-400"
-                              }`}
-                              title={
-                                monthData.rejection_comment
-                                  ? `Rechazado: ${monthData.rejection_comment}`
-                                  : status === "in_review"
-                                  ? "En revisión por tu líder"
-                                  : status === "approved"
-                                  ? "Aprobado"
-                                  : monthData.achieved_value != null
-                                  ? `${(monthData.achievement_percentage != null ? Number(monthData.achievement_percentage).toFixed(1) : "")}%`
-                                  : "Pendiente"
-                              }
-                            >
-                              {monthData.achievement_percentage != null
-                                ? Math.round(Number(monthData.achievement_percentage))
-                                : monthData.approval_status === "EN_REVISION"
-                                ? <AlertTriangle className="h-3 w-3" />
-                                : monthData.approval_status === "APROBADO"
-                                ? <CheckCircle className="h-3 w-3" />
-                                : "-"
-                              }
-                            </div>
-                          ) : (
-                            <div className="w-8 h-8 rounded bg-gray-50 flex items-center justify-center text-gray-300">-</div>
-                          )}
+                          <div
+                            className={`w-8 h-8 rounded flex items-center justify-center text-xs font-medium cursor-pointer ${style.bg} ${style.text}`}
+                            title={style.title}
+                          >
+                            {style.icon || (style.content != null ? style.content : "-")}
+                          </div>
                         </td>
                       );
                     })}
@@ -300,10 +295,9 @@ export default function EmployeeDashboard() {
 
       {/* Leyenda */}
       <div className="flex gap-4 text-xs text-gray-500">
-        <span className="flex items-center gap-1"><div className="w-3 h-3 rounded bg-green-100"></div> Aprobado</span>
-        <span className="flex items-center gap-1"><div className="w-3 h-3 rounded bg-yellow-100"></div> En revisión</span>
-        <span className="flex items-center gap-1"><div className="w-3 h-3 rounded bg-red-100"></div> Rechazado</span>
-        <span className="flex items-center gap-1"><div className="w-3 h-3 rounded bg-blue-50"></div> Completado</span>
+        <span className="flex items-center gap-1"><div className="w-3 h-3 rounded bg-green-100"></div> Meta cumplida</span>
+        <span className="flex items-center gap-1"><div className="w-3 h-3 rounded bg-red-100"></div> Meta no cumplida</span>
+        <span className="flex items-center gap-1"><div className="w-3 h-3 rounded bg-blue-50"></div> Valor registrado</span>
         <span className="flex items-center gap-1"><div className="w-3 h-3 rounded bg-gray-100"></div> Pendiente</span>
       </div>
     </div>
