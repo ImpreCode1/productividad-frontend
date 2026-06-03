@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Paperclip, Upload, Trash2, FileText, Image, File, Send, CheckCircle, XCircle, Clock, AlertTriangle, Save } from "lucide-react";
+import { Paperclip, Upload, Trash2, FileText, Image, File, Send, CheckCircle, XCircle, Clock, AlertTriangle, Save, Percent, Divide } from "lucide-react";
 import * as assignmentsApi from "../../../api/assignments.api";
 import * as trackingApi from "../../../api/tracking.api";
 import * as approvalApi from "../../../api/approval.api";
@@ -28,6 +28,8 @@ export default function EvidencePage() {
   const [dirty, setDirty] = useState({});
   const [saving, setSaving] = useState({});
   const [submitting, setSubmitting] = useState({});
+  const [inputMode, setInputMode] = useState({});
+  const [errorMsg, setErrorMsg] = useState({});
   const queryClient = useQueryClient();
   const currentYear = new Date().getFullYear();
   const [year, setYear] = useState(currentYear);
@@ -58,8 +60,8 @@ export default function EvidencePage() {
       queryClient.invalidateQueries({ queryKey: ["myTracking", year] });
       setUploadFile({});
     },
-    onError: (error) => {
-      alert(error.response?.data?.detail || "Error al subir evidencia");
+    onError: (error, variables) => {
+      setErrorMsg(prev => ({ ...prev, [variables.assignmentId]: error.response?.data?.detail || "Error al subir evidencia" }));
     },
     onSettled: () => setUploading({}),
   });
@@ -81,8 +83,8 @@ export default function EvidencePage() {
       queryClient.invalidateQueries({ queryKey: ["myTracking", year] });
       queryClient.invalidateQueries({ queryKey: ["myAssignments", year] });
     },
-    onError: (error) => {
-      alert(error.response?.data?.detail || "Error al guardar valor");
+    onError: (error, variables) => {
+      setErrorMsg(prev => ({ ...prev, [`save_${variables.assignmentId}`]: error.response?.data?.detail || "Error al guardar valor" }));
     },
     onSettled: () => setSaving({}),
   });
@@ -104,26 +106,57 @@ export default function EvidencePage() {
     const file = uploadFile[assignmentId];
     if (!file) return;
     setUploading(prev => ({ ...prev, [assignmentId]: true }));
+    setErrorMsg(prev => ({ ...prev, [assignmentId]: null }));
     uploadMutation.mutate({ assignmentId, file });
   };
 
-  const handleSaveValue = (assignmentId) => {
+  const validateAndSave = (assignmentId) => {
     const v = values[assignmentId];
+    const mode = inputMode[assignmentId] || "exact";
+
+    const errKey = `save_${assignmentId}`;
+
     if (!v || v.achieved_value == null || v.achieved_value === "") {
-      alert("Ingresa un valor logrado");
+      setErrorMsg(prev => ({ ...prev, [errKey]: "Ingresa un valor logrado" }));
       return;
     }
+
+    const numValue = parseFloat(v.achieved_value);
+    if (isNaN(numValue)) {
+      setErrorMsg(prev => ({ ...prev, [errKey]: "El valor logrado debe ser un número válido" }));
+      return;
+    }
+
+    if (mode === "formula") {
+      if (v.achieved_total == null || v.achieved_total === "") {
+        setErrorMsg(prev => ({ ...prev, [errKey]: "Ingresa el total para la fórmula" }));
+        return;
+      }
+      const numTotal = parseFloat(v.achieved_total);
+      if (isNaN(numTotal) || numTotal <= 0) {
+        setErrorMsg(prev => ({ ...prev, [errKey]: "El total debe ser un número mayor a 0" }));
+        return;
+      }
+    }
+
+    setErrorMsg(prev => ({ ...prev, [errKey]: null }));
     setSaving(prev => ({ ...prev, [assignmentId]: true }));
+
+    const achievedTotal = mode === "formula" && v.achieved_total != null && v.achieved_total !== ""
+      ? parseFloat(v.achieved_total)
+      : null;
+
     valueMutation.mutate({
       assignmentId,
-      achievedValue: parseFloat(v.achieved_value),
-      achievedTotal: v.achieved_total != null && v.achieved_total !== "" ? parseFloat(v.achieved_total) : null,
+      achievedValue: numValue,
+      achievedTotal,
     });
   };
 
   const handleSubmit = (assignmentId) => {
     if (!window.confirm("¿Enviar este KPI a revisión?")) return;
     setSubmitting(prev => ({ ...prev, [assignmentId]: true }));
+    setErrorMsg(prev => ({ ...prev, [`save_${assignmentId}`]: null }));
     submitMutation.mutate(assignmentId);
   };
 
@@ -133,6 +166,90 @@ export default function EvidencePage() {
     if (["jpg", "jpeg", "png"].includes(ext)) return <Image size={16} />;
     if (ext === "pdf") return <FileText size={16} />;
     return <File size={16} />;
+  };
+
+  const getLivePreview = (assignment) => {
+    const tracking = trackingByAssignment[assignment.id];
+    const v = values[assignment.id];
+    if (!v || v.achieved_value == null || v.achieved_value === "") return null;
+
+    const numValue = parseFloat(v.achieved_value);
+    if (isNaN(numValue)) return null;
+
+    const mode = inputMode[assignment.id] || "exact";
+    const targetValue = Number(assignment.target_value) || 0;
+    const weight = Number(assignment.weight) || 0;
+
+    let percentage = null;
+    let met = false;
+    let valid = false;
+
+    if (mode === "exact") {
+      percentage = numValue;
+      met = percentage >= targetValue;
+      valid = true;
+    } else {
+      const numTotal = v.achieved_total != null && v.achieved_total !== ""
+        ? parseFloat(v.achieved_total)
+        : null;
+      if (numTotal != null && !isNaN(numTotal) && numTotal > 0) {
+        percentage = (numValue / numTotal) * 100;
+        met = percentage >= targetValue;
+        valid = true;
+      }
+    }
+
+    if (!valid) return null;
+
+    const weighted = (percentage * weight) / 100;
+
+    return (
+      <div className={`mt-2 p-2 rounded-lg text-xs ${met ? "bg-green-50 border border-green-200" : "bg-red-50 border border-red-200"}`}>
+        <div className="flex items-center gap-1">
+          {met ? (
+            <CheckCircle className="h-3 w-3 text-green-600" />
+          ) : (
+            <XCircle className="h-3 w-3 text-red-600" />
+          )}
+          <span className={met ? "text-green-700" : "text-red-700"}>
+            <strong>Cumplimiento:</strong> {percentage.toFixed(2)}%
+            {met ? " ✅ Meta cumplida" : " ❌ No cumple meta"}
+          </span>
+        </div>
+        <div className="text-gray-500 mt-0.5">
+          Meta: {targetValue}% • Peso: {weight}% → Ponderado: {weighted.toFixed(2)}%
+        </div>
+      </div>
+    );
+  };
+
+  const getSavedResults = (assignment) => {
+    const tracking = trackingByAssignment[assignment.id];
+    if (!tracking || tracking.achievement_percentage == null) return null;
+
+    const met = tracking.target_met;
+    return (
+      <div className={`mt-2 p-2 rounded-lg text-xs ${met ? "bg-green-50 border border-green-200" : "bg-orange-50 border border-orange-200"}`}>
+        <div className="flex items-center gap-1">
+          {met ? (
+            <CheckCircle className="h-3 w-3 text-green-600" />
+          ) : (
+            <AlertTriangle className="h-3 w-3 text-orange-600" />
+          )}
+          <span className={met ? "text-green-700 font-medium" : "text-orange-700 font-medium"}>
+            {met ? "META CUMPLIDA" : "META NO CUMPLIDA"}
+          </span>
+          <span className="text-gray-500 ml-2">
+            {tracking.achieved_value != null && tracking.achieved_total != null
+              ? `${tracking.achieved_value} / ${tracking.achieved_total}`
+              : `${tracking.achieved_value}%`}
+          </span>
+        </div>
+        <div className="text-gray-500 mt-0.5">
+          Cumplimiento: {Number(tracking.achievement_percentage).toFixed(2)}% • Ponderado: {Number(tracking.weighted_score).toFixed(2)}%
+        </div>
+      </div>
+    );
   };
 
   const StatusBadge = ({ status }) => {
@@ -175,7 +292,7 @@ export default function EvidencePage() {
     return "pending";
   };
 
-  const monthAssignments = useMemo(() => 
+  const monthAssignments = useMemo(() =>
     assignments.filter(a => a.month === null || a.month === selectedMonth),
     [assignments, selectedMonth]
   );
@@ -255,7 +372,7 @@ export default function EvidencePage() {
                   const isBlocked = status === "APROBADO";
                   const isRejected = status === "RECHAZADO";
                   const isInReview = status === "EN_REVISION";
-                  const trackingId = tracking?.id;
+                  const key_error = `save_${assignment.id}`;
 
                   const currentVal = dirty[assignment.id]
                     ? (values[assignment.id] || {})
@@ -263,16 +380,30 @@ export default function EvidencePage() {
                         achieved_value: tracking?.achieved_value ?? "",
                         achieved_total: tracking?.achieved_total ?? "",
                       };
+
+                  const currentMode = inputMode[assignment.id] || (
+                    tracking?.achieved_total != null ? "formula" : "exact"
+                  );
+
                   const canSubmit = status === "PENDIENTE" || status === "RECHAZADO";
 
                   return (
                     <div key={assignment.id} className="border border-gray-200 rounded-lg overflow-hidden">
                       <div className="px-4 py-3 bg-gray-50 border-b border-gray-200">
                         <div className="flex items-center justify-between">
-                          <div>
-                            <h3 className="font-medium text-gray-900">{assignment.indicator_name}</h3>
+                          <div className="flex-1 min-w-0">
+                            <h3 className="font-medium text-gray-900 truncate">{assignment.indicator_name}</h3>
                             <p className="text-xs text-gray-500">
                               Meta: {assignment.target_value}% • Peso: {assignment.weight}%
+                              {tracking?.achievement_percentage != null && (
+                                <span className="ml-2 font-medium">
+                                  • Resultado: {Number(tracking.achievement_percentage).toFixed(2)}%
+                                  {tracking.target_met
+                                    ? <span className="text-green-600"> ✅</span>
+                                    : <span className="text-red-600"> ❌</span>
+                                  }
+                                </span>
+                              )}
                             </p>
                           </div>
                           <StatusBadge status={status} />
@@ -287,13 +418,40 @@ export default function EvidencePage() {
                       <div className="p-4 space-y-4">
                         {!isBlocked && !isInReview && (
                           <div className="p-3 bg-white border border-gray-200 rounded-lg">
-                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 items-end">
+                            <div className="flex gap-2 mb-3">
+                              <button
+                                onClick={() => setInputMode(prev => ({ ...prev, [assignment.id]: "exact" }))}
+                                className={`flex-1 px-3 py-1.5 text-xs rounded-lg border flex items-center justify-center gap-1 ${
+                                  currentMode === "exact"
+                                    ? "bg-blue-600 text-white border-blue-600"
+                                    : "bg-white text-gray-600 border-gray-300 hover:border-gray-400"
+                                }`}
+                              >
+                                <Percent className="h-3 w-3" />
+                                Valor exacto
+                              </button>
+                              <button
+                                onClick={() => setInputMode(prev => ({ ...prev, [assignment.id]: "formula" }))}
+                                className={`flex-1 px-3 py-1.5 text-xs rounded-lg border flex items-center justify-center gap-1 ${
+                                  currentMode === "formula"
+                                    ? "bg-blue-600 text-white border-blue-600"
+                                    : "bg-white text-gray-600 border-gray-300 hover:border-gray-400"
+                                }`}
+                              >
+                                <Divide className="h-3 w-3" />
+                                Fórmula (división)
+                              </button>
+                            </div>
+
+                            <div className={currentMode === "formula" ? "grid grid-cols-1 sm:grid-cols-3 gap-3 items-end" : "grid grid-cols-1 sm:grid-cols-2 gap-3 items-end"}>
                               <div>
-                                <label className="block text-xs font-medium text-gray-600 mb-1">Valor logrado</label>
+                                <label className="block text-xs font-medium text-gray-600 mb-1">
+                                  {currentMode === "exact" ? "Valor logrado (%)" : "Valor logrado"}
+                                </label>
                                 <input
                                   type="number"
                                   step="0.01"
-                                  placeholder="Ej: 85"
+                                  placeholder={currentMode === "exact" ? "Ej: 85" : "Ej: 950"}
                                   value={currentVal.achieved_value ?? ""}
                                   onChange={(e) => {
                                     setDirty(prev => ({ ...prev, [assignment.id]: true }));
@@ -305,46 +463,64 @@ export default function EvidencePage() {
                                   className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500"
                                 />
                               </div>
+                              {currentMode === "formula" && (
+                                <div>
+                                  <label className="block text-xs font-medium text-gray-600 mb-1">Total</label>
+                                  <input
+                                    type="number"
+                                    step="0.01"
+                                    placeholder="Ej: 1000"
+                                    value={currentVal.achieved_total ?? ""}
+                                    onChange={(e) => {
+                                      setDirty(prev => ({ ...prev, [assignment.id]: true }));
+                                      setValues(prev => ({
+                                        ...prev,
+                                        [assignment.id]: { ...prev[assignment.id], achieved_total: e.target.value }
+                                      }));
+                                    }}
+                                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500"
+                                  />
+                                </div>
+                              )}
                               <div>
-                                <label className="block text-xs font-medium text-gray-600 mb-1">Total (opcional)</label>
-                                <input
-                                  type="number"
-                                  step="0.01"
-                                  placeholder="Ej: 100"
-                                  value={currentVal.achieved_total ?? ""}
-                                  onChange={(e) => {
-                                    setDirty(prev => ({ ...prev, [assignment.id]: true }));
-                                    setValues(prev => ({
-                                      ...prev,
-                                      [assignment.id]: { ...prev[assignment.id], achieved_total: e.target.value }
-                                    }));
-                                  }}
-                                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500"
-                                />
+                                <button
+                                  onClick={() => validateAndSave(assignment.id)}
+                                  disabled={saving[assignment.id]}
+                                  className="flex items-center justify-center gap-1 px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 disabled:opacity-50 w-full"
+                                >
+                                  <Save className="h-4 w-4" />
+                                  {saving[assignment.id] ? "Guardando..." : "Guardar valor"}
+                                </button>
                               </div>
-                              <button
-                                onClick={() => handleSaveValue(assignment.id)}
-                                disabled={saving[assignment.id]}
-                                className="flex items-center justify-center gap-1 px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 disabled:opacity-50"
-                              >
-                                <Save className="h-4 w-4" />
-                                {saving[assignment.id] ? "Guardando..." : "Guardar valor"}
-                              </button>
                             </div>
+
+                            {errorMsg[key_error] && (
+                              <p className="mt-2 text-xs text-red-600 flex items-center gap-1">
+                                <XCircle className="h-3 w-3" />
+                                {errorMsg[key_error]}
+                              </p>
+                            )}
+
+                            {getLivePreview(assignment)}
                           </div>
                         )}
+
+                        {tracking?.achievement_percentage != null && !dirty[assignment.id] && getSavedResults(assignment)}
 
                         {!isBlocked && (
                           <div className="p-3 border-2 border-dashed border-gray-300 rounded-lg">
                             <input
                               type="file"
                               accept="application/pdf,image/png,image/jpeg"
-                              onChange={(e) => setUploadFile(prev => ({ ...prev, [assignment.id]: e.target.files[0] }))}
+                              onChange={(e) => {
+                                setUploadFile(prev => ({ ...prev, [assignment.id]: e.target.files[0] }));
+                                setErrorMsg(prev => ({ ...prev, [assignment.id]: null }));
+                              }}
                               className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
                             />
                             {uploadFile[assignment.id] && (
                               <div className="mt-2 flex items-center justify-between">
-                                <span className="text-sm text-gray-700">{uploadFile[assignment.id].name}</span>
+                                <span className="text-sm text-gray-700 truncate max-w-[60%]">{uploadFile[assignment.id].name}</span>
                                 <button
                                   onClick={() => handleUpload(assignment.id)}
                                   disabled={uploading[assignment.id]}
@@ -354,6 +530,9 @@ export default function EvidencePage() {
                                   {uploading[assignment.id] ? "Subiendo..." : "Subir"}
                                 </button>
                               </div>
+                            )}
+                            {errorMsg[assignment.id] && (
+                              <p className="mt-1 text-xs text-red-600">{errorMsg[assignment.id]}</p>
                             )}
                           </div>
                         )}
@@ -380,18 +559,18 @@ export default function EvidencePage() {
                           <div className="space-y-1">
                             {evidences.map((ev) => (
                               <div key={ev.id} className="flex items-center justify-between p-2 bg-gray-50 rounded-lg">
-                                <div className="flex items-center gap-2">
+                                <div className="flex items-center gap-2 min-w-0">
                                   {getFileIcon(ev.file_path)}
                                   <a
                                     href={`${backendUrl}${ev.file_path}`}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className="text-sm text-blue-600 hover:underline"
+                                    className="text-sm text-blue-600 hover:underline truncate"
                                   >
                                     {ev.original_filename || ev.file_path.split("/").pop()}
                                   </a>
                                   {ev.file_size && (
-                                    <span className="text-xs text-gray-400">
+                                    <span className="text-xs text-gray-400 shrink-0">
                                       ({(ev.file_size / 1024).toFixed(1)} KB)
                                     </span>
                                   )}
@@ -400,7 +579,7 @@ export default function EvidencePage() {
                                   <button
                                     onClick={() => deleteMutation.mutate(ev.id)}
                                     disabled={deleteMutation.isPending}
-                                    className="text-red-500 hover:text-red-700"
+                                    className="text-red-500 hover:text-red-700 shrink-0"
                                   >
                                     <Trash2 size={16} />
                                   </button>
