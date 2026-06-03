@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Paperclip, Upload, Trash2, FileText, Image, File, Send, CheckCircle, XCircle, Clock, AlertTriangle, Save } from "lucide-react";
 import * as assignmentsApi from "../../../api/assignments.api";
@@ -33,8 +33,8 @@ export default function EvidencePage() {
   const [year, setYear] = useState(currentYear);
 
   const { data: assignmentsData, isLoading: assignmentsLoading } = useQuery({
-    queryKey: ["myAssignments", year, selectedMonth],
-    queryFn: () => assignmentsApi.getMyAssignments(year, selectedMonth),
+    queryKey: ["myAssignments", year],
+    queryFn: () => assignmentsApi.getMyAssignments(year),
   });
 
   const { data: trackingData } = useQuery({
@@ -79,7 +79,7 @@ export default function EvidencePage() {
       approvalApi.setTrackingValue(assignmentId, achievedValue, achievedTotal),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["myTracking", year] });
-      queryClient.invalidateQueries({ queryKey: ["myAssignments", year, selectedMonth] });
+      queryClient.invalidateQueries({ queryKey: ["myAssignments", year] });
     },
     onError: (error) => {
       alert(error.response?.data?.detail || "Error al guardar valor");
@@ -91,7 +91,7 @@ export default function EvidencePage() {
     mutationFn: (assignmentId) => approvalApi.submitAssignment(assignmentId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["myTracking", year] });
-      queryClient.invalidateQueries({ queryKey: ["myAssignments", year, selectedMonth] });
+      queryClient.invalidateQueries({ queryKey: ["myAssignments", year] });
       queryClient.invalidateQueries({ queryKey: ["dashboard", "me", year] });
     },
     onError: (error) => {
@@ -146,13 +146,39 @@ export default function EvidencePage() {
     );
   };
 
-  const hasData = (monthIndex) => {
-    const monthAssignments = assignments.filter(a => a.month === null || a.month === monthIndex + 1);
-    if (monthAssignments.length > 0) return true;
-    return allTrackings.some(t => t.month === monthIndex + 1);
+  const getMonthStatus = (monthIndex) => {
+    const monthNum = monthIndex + 1;
+    const monthAssignments = assignments.filter(a => a.month === null || a.month === monthNum);
+    if (monthAssignments.length === 0) return "none";
+
+    let allComplete = true;
+    let anyPending = false;
+    let anyInReview = false;
+
+    for (const a of monthAssignments) {
+      const tracking = trackingByAssignment[a.id];
+      if (!tracking || tracking.approval_status === "RECHAZADO") {
+        anyPending = true;
+        allComplete = false;
+      } else if (tracking.approval_status === "EN_REVISION") {
+        anyInReview = true;
+        allComplete = false;
+      } else if (tracking.approval_status !== "APROBADO") {
+        anyPending = true;
+        allComplete = false;
+      }
+    }
+
+    if (allComplete) return "complete";
+    if (anyPending) return "pending";
+    if (anyInReview) return "in_review";
+    return "pending";
   };
 
-  const monthAssignments = assignments.filter(a => a.month === null || a.month === selectedMonth);
+  const monthAssignments = useMemo(() => 
+    assignments.filter(a => a.month === null || a.month === selectedMonth),
+    [assignments, selectedMonth]
+  );
 
   return (
     <div className="space-y-6">
@@ -160,8 +186,8 @@ export default function EvidencePage() {
         <div className="flex items-center gap-3">
           <Paperclip className="h-8 w-8 text-blue-600" />
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Evidencias</h1>
-            <p className="text-sm text-gray-500">Registra tu valor y sube evidencias por cada KPI</p>
+            <h1 className="text-2xl font-bold text-gray-900">Evaluación de KPIs</h1>
+            <p className="text-sm text-gray-500">Sube tus evidencias y registra el valor alcanzado por cada indicador</p>
           </div>
         </div>
         <select
@@ -178,22 +204,31 @@ export default function EvidencePage() {
         <div className="bg-white rounded-lg shadow p-4">
           <h2 className="text-lg font-semibold text-gray-800 mb-4">Selecciona el Mes</h2>
           <div className="grid grid-cols-3 gap-2">
-            {months.map((m, i) => (
-              <button
-                key={i}
-                onClick={() => setSelectedMonth(i + 1)}
-                className={`p-3 rounded-lg border transition-all ${
-                  selectedMonth === i + 1
-                    ? "border-blue-500 bg-blue-50"
-                    : "border-gray-200 hover:border-gray-300"
-                }`}
-              >
-                <div className="text-sm font-medium text-gray-700">{m}</div>
-                {hasData(i) && (
-                  <div className="text-xs text-green-600 mt-1">✓ datos</div>
-                )}
-              </button>
-            ))}
+            {months.map((m, i) => {
+              const status = getMonthStatus(i);
+              const statusConfig = {
+                pending: { text: "text-amber-600", label: "⚠ pendiente" },
+                in_review: { text: "text-blue-600", label: "🔄 revisión" },
+                complete: { text: "text-green-600", label: "✓ completo" },
+              };
+              const config = statusConfig[status];
+              return (
+                <button
+                  key={i}
+                  onClick={() => setSelectedMonth(i + 1)}
+                  className={`p-3 rounded-lg border transition-all ${
+                    selectedMonth === i + 1
+                      ? "border-blue-500 bg-blue-50"
+                      : "border-gray-200 hover:border-gray-300"
+                  }`}
+                >
+                  <div className="text-sm font-medium text-gray-700">{m}</div>
+                  {config && (
+                    <div className={`text-xs ${config.text} mt-1`}>{config.label}</div>
+                  )}
+                </button>
+              );
+            })}
           </div>
         </div>
 
