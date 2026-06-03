@@ -31,7 +31,7 @@ export default function TeamDashboard() {
   const [inputMode, setInputMode] = useState("formula");
   const [directPercentage, setDirectPercentage] = useState("");
   const [approveModal, setApproveModal] = useState({ open: false, tracking: null, monthData: null, indicatorData: null });
-  const [rejectModal, setRejectModal] = useState({ open: false, tracking: null, comment: "" });
+  const [rejectModal, setRejectModal] = useState({ open: false, tracking: null, monthData: null, comment: "" });
   const [actionPlanModal, setActionPlanModal] = useState({ open: false, month: null, indicator: null, actionPlanId: null });
   const [actionPlanData, setActionPlanData] = useState({ reason_not_met: "", action_plan: "" });
   const [actionPlanLoading, setActionPlanLoading] = useState(false);
@@ -48,28 +48,7 @@ export default function TeamDashboard() {
 
   const approveMutation = useMutation({
     mutationFn: (trackingId) => approvalApi.approveTracking(trackingId),
-    onSuccess: (response) => {
-      const tracking = response.data;
-      const trackingId = tracking.id;
-      const isMet = tracking.target_met;
-      const indicator = approveModal.indicatorData;
-      const monthObj = approveModal.monthData;
-
-      if (isMet) {
-        actionPlanApi.createActionPlan(trackingId, {
-          reason_not_met: "Meta cumplida satisfactoriamente",
-          action_plan: "Se alcanzó el objetivo establecido. Continuar con el mismo nivel de desempeño."
-        }).catch(() => {});
-      } else {
-        setActionPlanModal({
-          open: true,
-          month: { ...monthObj, tracking_id: trackingId },
-          indicator,
-          actionPlanId: null,
-        });
-        setActionPlanData({ reason_not_met: "", action_plan: "" });
-      }
-
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["team", "dashboard", year] });
       setApproveModal({ open: false, tracking: null, monthData: null, indicatorData: null });
     },
@@ -187,8 +166,8 @@ export default function TeamDashboard() {
 
       if (isMet) {
         setActionPlanData({
-          reason_not_met: "Meta cumplida satisfactoriamente",
-          action_plan: "Se alcanzó el objetivo establecido. Continuar con el mismo nivel de desempeño."
+          reason_not_met: "Se ha logrado el cumplimiento del indicador.",
+          action_plan: "Se ha logrado el cumplimiento del indicador."
         });
         setActionPlanModal({
           open: true,
@@ -435,7 +414,7 @@ export default function TeamDashboard() {
                                                     className="text-xs bg-green-600 text-white px-2 py-1 rounded hover:bg-green-700">
                                                     <ThumbsUp className="h-3 w-3 inline mr-1" />Aprobar
                                                   </button>
-                                                  <button onClick={() => setRejectModal({ open: true, tracking: { id: month.tracking_id, indicator: indicator.indicator_name, month: month.month, user: member.name }, comment: "" })}
+                                                  <button onClick={() => setRejectModal({ open: true, tracking: { id: month.tracking_id, indicator: indicator.indicator_name, month: month.month, user: member.name }, monthData: month, comment: "" })}
                                                     className="text-xs bg-red-600 text-white px-2 py-1 rounded hover:bg-red-700">
                                                     <ThumbsDown className="h-3 w-3 inline mr-1" />Rechazar
                                                   </button>
@@ -500,7 +479,45 @@ export default function TeamDashboard() {
                 <p className="text-sm text-gray-500">
                   {getMonthName(approveModal.tracking?.month)} • {approveModal.tracking?.user}
                 </p>
+                {approveModal.monthData?.achieved_value != null && (
+                  <div className="mt-2 text-xs text-gray-500">
+                    Logrado: {approveModal.monthData.achieved_value != null && approveModal.monthData.achieved_total != null
+                      ? `${approveModal.monthData.achieved_value} / ${approveModal.monthData.achieved_total}`
+                      : `${approveModal.monthData.achieved_value}%`}
+                    {approveModal.monthData.achievement_percentage != null && (
+                      <span className="ml-2">
+                        • Cumplimiento: {Number(approveModal.monthData.achievement_percentage).toFixed(2)}%
+                      </span>
+                    )}
+                  </div>
+                )}
               </div>
+
+              {approveModal.monthData?.action_plans?.length > 0 && (
+                <div className="border border-gray-200 rounded-lg p-3 space-y-2">
+                  <h4 className="text-xs font-semibold text-gray-700 flex items-center gap-1">
+                    <FileText className="h-3 w-3" />
+                    Plan de acción del empleado
+                  </h4>
+                  {approveModal.monthData.action_plans.map((plan, idx) => (
+                    <div key={plan.id || idx} className="text-xs space-y-1">
+                      {plan.reason_not_met && (
+                        <div>
+                          <span className="text-gray-500">Razón:</span>
+                          <p className="text-gray-700 mt-0.5">{plan.reason_not_met}</p>
+                        </div>
+                      )}
+                      {plan.action_plan && (
+                        <div>
+                          <span className="text-gray-500">Plan:</span>
+                          <p className="text-gray-700 mt-0.5">{plan.action_plan}</p>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+
               <div className="flex gap-3">
                 <button onClick={() => setApproveModal({ open: false, tracking: null, monthData: null, indicatorData: null })}
                   className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50">Cancelar</button>
@@ -521,7 +538,7 @@ export default function TeamDashboard() {
           <div className="bg-white rounded-lg shadow-xl w-full max-w-md mx-4">
             <div className="flex justify-between items-center p-4 border-b">
               <h3 className="text-lg font-semibold flex items-center gap-2"><ThumbsDown className="h-5 w-5 text-red-600" /> Rechazar KPI</h3>
-              <button onClick={() => setRejectModal({ open: false, tracking: null, comment: "" })}
+              <button onClick={() => setRejectModal({ open: false, tracking: null, monthData: null, comment: "" })}
                 className="text-gray-400 hover:text-gray-600"><XCircle className="h-5 w-5" /></button>
             </div>
             <div className="p-4 space-y-4">
@@ -530,7 +547,45 @@ export default function TeamDashboard() {
                 <p className="text-sm text-gray-500">
                   {getMonthName(rejectModal.tracking?.month)} • {rejectModal.tracking?.user}
                 </p>
+                {rejectModal.monthData?.achieved_value != null && (
+                  <div className="mt-2 text-xs text-gray-500">
+                    Logrado: {rejectModal.monthData.achieved_value != null && rejectModal.monthData.achieved_total != null
+                      ? `${rejectModal.monthData.achieved_value} / ${rejectModal.monthData.achieved_total}`
+                      : `${rejectModal.monthData.achieved_value}%`}
+                    {rejectModal.monthData.achievement_percentage != null && (
+                      <span className="ml-2">
+                        • Cumplimiento: {Number(rejectModal.monthData.achievement_percentage).toFixed(2)}%
+                      </span>
+                    )}
+                  </div>
+                )}
               </div>
+
+              {rejectModal.monthData?.action_plans?.length > 0 && (
+                <div className="border border-gray-200 rounded-lg p-3 space-y-2">
+                  <h4 className="text-xs font-semibold text-gray-700 flex items-center gap-1">
+                    <FileText className="h-3 w-3" />
+                    Plan de acción del empleado
+                  </h4>
+                  {rejectModal.monthData.action_plans.map((plan, idx) => (
+                    <div key={plan.id || idx} className="text-xs space-y-1">
+                      {plan.reason_not_met && (
+                        <div>
+                          <span className="text-gray-500">Razón:</span>
+                          <p className="text-gray-700 mt-0.5">{plan.reason_not_met}</p>
+                        </div>
+                      )}
+                      {plan.action_plan && (
+                        <div>
+                          <span className="text-gray-500">Plan:</span>
+                          <p className="text-gray-700 mt-0.5">{plan.action_plan}</p>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Motivo del rechazo <span className="text-red-500">*</span>
@@ -544,7 +599,7 @@ export default function TeamDashboard() {
                 />
               </div>
               <div className="flex gap-3">
-                <button onClick={() => setRejectModal({ open: false, tracking: null, comment: "" })}
+                <button onClick={() => setRejectModal({ open: false, tracking: null, monthData: null, comment: "" })}
                   className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50">Cancelar</button>
                 <button
                   onClick={() => {

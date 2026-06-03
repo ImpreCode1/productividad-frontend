@@ -1,10 +1,18 @@
 import api from "./client";
 
-export const submitTracking = (trackingId) =>
-  api.patch(`/tracking/${trackingId}/submit`);
+export const submitTracking = (trackingId, reason_not_met = null, action_plan = null) => {
+  const payload = {};
+  if (reason_not_met != null) payload.reason_not_met = reason_not_met;
+  if (action_plan != null) payload.action_plan = action_plan;
+  return api.patch(`/tracking/${trackingId}/submit`, payload);
+};
 
-export const submitAssignment = (assignmentId) =>
-  api.post(`/tracking/assignment/${assignmentId}/submit`);
+export const submitAssignment = (assignmentId, reason_not_met = null, action_plan = null) => {
+  const payload = {};
+  if (reason_not_met != null) payload.reason_not_met = reason_not_met;
+  if (action_plan != null) payload.action_plan = action_plan;
+  return api.post(`/tracking/assignment/${assignmentId}/submit`, payload);
+};
 
 export const approveTracking = (trackingId) =>
   api.patch(`/tracking/${trackingId}/approve`);

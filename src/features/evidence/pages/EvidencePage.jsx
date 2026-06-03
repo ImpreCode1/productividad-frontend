@@ -29,6 +29,7 @@ export default function EvidencePage() {
   const [saving, setSaving] = useState({});
   const [submitting, setSubmitting] = useState({});
   const [inputMode, setInputMode] = useState({});
+  const [actionPlanData, setActionPlanData] = useState({});
   const [errorMsg, setErrorMsg] = useState({});
   const queryClient = useQueryClient();
   const currentYear = new Date().getFullYear();
@@ -90,7 +91,8 @@ export default function EvidencePage() {
   });
 
   const submitMutation = useMutation({
-    mutationFn: (assignmentId) => approvalApi.submitAssignment(assignmentId),
+    mutationFn: ({ assignmentId, reason_not_met, action_plan }) =>
+      approvalApi.submitAssignment(assignmentId, reason_not_met, action_plan),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["myTracking", year] });
       queryClient.invalidateQueries({ queryKey: ["myAssignments", year] });
@@ -153,11 +155,17 @@ export default function EvidencePage() {
     });
   };
 
-  const handleSubmit = (assignmentId) => {
+  const handleSubmit = (assignmentId, isMet) => {
     if (!window.confirm("¿Enviar este KPI a revisión?")) return;
+    const ap = actionPlanData[assignmentId] || {};
     setSubmitting(prev => ({ ...prev, [assignmentId]: true }));
     setErrorMsg(prev => ({ ...prev, [`save_${assignmentId}`]: null }));
-    submitMutation.mutate(assignmentId);
+    const defaultText = "Se ha logrado el cumplimiento del indicador.";
+    submitMutation.mutate({
+      assignmentId,
+      reason_not_met: isMet ? defaultText : (ap.reason_not_met || null),
+      action_plan: isMet ? defaultText : (ap.action_plan || null),
+    });
   };
 
   const getFileIcon = (path) => {
@@ -386,6 +394,15 @@ export default function EvidencePage() {
                   );
 
                   const canSubmit = status === "PENDIENTE" || status === "RECHAZADO";
+                  const hasValue = tracking?.achieved_value != null;
+                  const hasEvidence = evidences.length > 0;
+                  const ap = actionPlanData[assignment.id] || {};
+                  const existingAp = tracking?.action_plans?.[0];
+                  const isMet = tracking?.target_met === true;
+                  const actionPlanRequired = tracking?.target_met === false;
+                  const actionPlanText = ap.action_plan || existingAp?.action_plan || "";
+                  const actionPlanFilled = actionPlanText.trim().length > 0;
+                  const canReallySubmit = canSubmit && hasValue && hasEvidence && (!actionPlanRequired || actionPlanFilled);
 
                   return (
                     <div key={assignment.id} className="border border-gray-200 rounded-lg overflow-hidden">
@@ -541,16 +558,6 @@ export default function EvidencePage() {
                           <h4 className="text-sm font-medium text-gray-700">
                             Evidencias ({evidences.length})
                           </h4>
-                          {canSubmit && (
-                            <button
-                              onClick={() => handleSubmit(assignment.id)}
-                              disabled={submitting[assignment.id]}
-                              className="flex items-center gap-1 px-3 py-1.5 bg-green-600 text-white text-xs rounded-lg hover:bg-green-700 disabled:opacity-50"
-                            >
-                              <Send className="h-3 w-3" />
-                              {submitting[assignment.id] ? "Enviando..." : "Enviar a revisión"}
-                            </button>
-                          )}
                         </div>
 
                         {evidences.length === 0 ? (
@@ -587,6 +594,93 @@ export default function EvidencePage() {
                               </div>
                             ))}
                           </div>
+                        )}
+
+                        {canSubmit && hasValue && actionPlanRequired && (
+                          <div className="border border-gray-200 rounded-lg p-3 space-y-3">
+                            <h4 className="text-sm font-medium text-gray-700 flex items-center gap-1">
+                              <FileText className="h-4 w-4" />
+                              Plan de acción
+                            </h4>
+                            <p className="text-xs text-gray-500">
+                              Describe las acciones para mejorar este indicador. El líder revisará esta información al aprobar.
+                            </p>
+                            <div>
+                              <label className="block text-xs font-medium text-gray-600 mb-1">Razón del no cumplimiento (opcional)</label>
+                              <textarea
+                                value={actionPlanData[assignment.id]?.reason_not_met ?? existingAp?.reason_not_met ?? ""}
+                                onChange={(e) => setActionPlanData(prev => ({
+                                  ...prev,
+                                  [assignment.id]: { ...prev[assignment.id], reason_not_met: e.target.value }
+                                }))}
+                                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm min-h-[60px] focus:ring-2 focus:ring-blue-500"
+                                placeholder="Ej: El objetivo no se alcanzó debido a..."
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-xs font-medium text-gray-600 mb-1">
+                                Plan de acción <span className="text-red-500">*</span>
+                              </label>
+                              <textarea
+                                value={actionPlanData[assignment.id]?.action_plan ?? existingAp?.action_plan ?? ""}
+                                onChange={(e) => setActionPlanData(prev => ({
+                                  ...prev,
+                                  [assignment.id]: { ...prev[assignment.id], action_plan: e.target.value }
+                                }))}
+                                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm min-h-[80px] focus:ring-2 focus:ring-blue-500"
+                                placeholder="Ej: Se implementará una nueva estrategia para..."
+                              />
+                            </div>
+
+                            {(!hasEvidence || !actionPlanFilled) && (
+                              <div className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg p-2 space-y-1">
+                                {!hasEvidence && (
+                                  <p className="flex items-center gap-1">
+                                    <AlertTriangle className="h-3 w-3 shrink-0" />
+                                    Sube al menos una evidencia antes de enviar
+                                  </p>
+                                )}
+                                {!actionPlanFilled && (
+                                  <p className="flex items-center gap-1">
+                                    <AlertTriangle className="h-3 w-3 shrink-0" />
+                                    Completa el plan de acción
+                                  </p>
+                                )}
+                              </div>
+                            )}
+
+                            <button
+                              onClick={() => handleSubmit(assignment.id, false)}
+                              disabled={!canReallySubmit || submitting[assignment.id]}
+                              className="flex items-center justify-center gap-1 w-full px-4 py-2 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                              <Send className="h-4 w-4" />
+                              {submitting[assignment.id] ? "Enviando..." : "Enviar a revisión"}
+                            </button>
+                          </div>
+                        )}
+                        {canSubmit && hasValue && !actionPlanRequired && (
+                          <div className="flex flex-col items-center gap-2 pt-2">
+                            {!hasEvidence && (
+                              <p className="text-xs text-amber-600 flex items-center gap-1">
+                                <AlertTriangle className="h-3 w-3" />
+                                Sube al menos una evidencia antes de enviar
+                              </p>
+                            )}
+                            <button
+                              onClick={() => handleSubmit(assignment.id, true)}
+                              disabled={!canReallySubmit || submitting[assignment.id]}
+                              className="flex items-center justify-center gap-1 w-full px-4 py-2 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                              <Send className="h-4 w-4" />
+                              {submitting[assignment.id] ? "Enviando..." : "Enviar a revisión"}
+                            </button>
+                          </div>
+                        )}
+                        {canSubmit && !hasValue && (
+                          <p className="text-xs text-amber-600 text-center py-2">
+                            Guarda un valor antes de enviar a revisión
+                          </p>
                         )}
                       </div>
                     </div>
