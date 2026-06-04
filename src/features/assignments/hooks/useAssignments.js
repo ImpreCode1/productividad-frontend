@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import * as assignmentsApi from "../../../api/assignments.api";
+import * as actionPlanApi from "../../../api/actionPlan.api";
 
 export function useAssignments(year, month) {
   return useQuery({
@@ -61,6 +62,17 @@ export function useCloneFromPreviousMonth() {
 
   return useMutation({
     mutationFn: ({ year, month }) => assignmentsApi.cloneFromPreviousMonth(year, month),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["assignments"] });
+    },
+  });
+}
+
+export function useImportActionPlans() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ file, year, month }) => actionPlanApi.importActionPlansExcel(file, year, month),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["assignments"] });
     },

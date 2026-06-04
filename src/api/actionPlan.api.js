@@ -14,3 +14,14 @@ export const createActionPlan = (trackingId, data) =>
 
 export const updateActionPlan = (actionPlanId, data) =>
   api.patch(`/action-plan/${actionPlanId}`, data).then((r) => r.data);
+
+export const importActionPlansExcel = (file, year, month) => {
+  const formData = new FormData();
+  formData.append("file", file);
+  formData.append("year", String(year));
+  formData.append("month", String(month));
+
+  return api.post("/action-plan/import-excel", formData, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
+};

@@ -5,6 +5,7 @@ import { useUsers } from "../../users/hooks/useUsers";
 import AssignmentList from "../components/AssignmentList";
 import { AssignmentModal } from "../components/AssignmentModal";
 import { ImportAssignmentsModal } from "../components/ImportAssignmentsModal";
+import { ImportActionPlansModal } from "../components/ImportActionPlansModal";
 
 const MONTHS = [
   { value: 1, label: "Enero" },
@@ -28,6 +29,7 @@ export default function AssignmentsPage() {
   const [month, setMonth] = useState(currentMonth);
   const [showModal, setShowModal] = useState(false);
   const [showImport, setShowImport] = useState(false);
+  const [showImportActionPlans, setShowImportActionPlans] = useState(false);
   const [editAssignment, setEditAssignment] = useState(null);
 
   const { data: assignments, isLoading } = useAssignments(year, month);
@@ -105,6 +107,14 @@ export default function AssignmentsPage() {
             Importar Excel
           </button>
 
+          <button
+            onClick={() => setShowImportActionPlans(true)}
+            className="flex items-center gap-2 bg-amber-600 text-white px-4 py-2 rounded-lg hover:bg-amber-700 transition-colors"
+          >
+            <Upload className="h-4 w-4" />
+            Importar Planes
+          </button>
+
           <select
             value={month}
             onChange={(e) => setMonth(Number(e.target.value))}
@@ -167,6 +177,13 @@ export default function AssignmentsPage() {
       <ImportAssignmentsModal
         isOpen={showImport}
         onClose={() => setShowImport(false)}
+        year={year}
+        month={month}
+      />
+
+      <ImportActionPlansModal
+        isOpen={showImportActionPlans}
+        onClose={() => setShowImportActionPlans(false)}
         year={year}
         month={month}
       />
