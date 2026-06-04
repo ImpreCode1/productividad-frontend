@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { LayoutDashboard, Users, Target, CheckCircle, XCircle, Paperclip, ClipboardList, ChevronDown, ChevronRight, FileText, Briefcase, Check, AlertCircle, Building2, Download } from "lucide-react";
+import { LayoutDashboard, Users, Target, CheckCircle, XCircle, Paperclip, ClipboardList, ChevronDown, ChevronRight, FileText, Briefcase, Check, AlertCircle, Building2, Download, X } from "lucide-react";
 import api from "../../../api/client";
 import { getAreas } from "../../../api/users.api";
 
@@ -24,6 +24,7 @@ export default function AdminDashboard() {
   const [expandedUsers, setExpandedUsers] = useState({});
   const [expandedIndicators, setExpandedIndicators] = useState({});
   const [downloading, setDownloading] = useState(false);
+  const [actionPlanModal, setActionPlanModal] = useState(null);
 
   const handleDownloadReport = async () => {
     setDownloading(true);
@@ -369,8 +370,21 @@ export default function AdminDashboard() {
                                                   : "-"}
                                               </div>
                                               <div className="flex justify-center gap-0.5 mt-0.5">
-                                                {monthData?.has_evidence && <span className="text-[8px]"></span>}
-                                                {monthData?.has_action_plan && <span className="text-[8px]"></span>}
+                                                {monthData?.has_evidence && (
+                                                  <Paperclip className="h-2.5 w-2.5 text-cyan-500" />
+                                                )}
+                                                {monthData?.has_action_plan && (
+                                                  <button
+                                                    onClick={(e) => {
+                                                      e.stopPropagation();
+                                                      setActionPlanModal(monthData);
+                                                    }}
+                                                    className="hover:scale-110 transition-transform"
+                                                    title="Ver plan de acción"
+                                                  >
+                                                    <ClipboardList className="h-2.5 w-2.5 text-indigo-500" />
+                                                  </button>
+                                                )}
                                               </div>
                                             </div>
                                           );
@@ -398,6 +412,44 @@ export default function AdminDashboard() {
           </div>
         ))}
       </div>
+
+      {actionPlanModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm bg-black/30" onClick={() => setActionPlanModal(null)}>
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-lg mx-4 max-h-[80vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
+            <div className="flex justify-between items-center p-4 border-b shrink-0">
+              <h3 className="text-lg font-semibold flex items-center gap-2">
+                <ClipboardList className="h-5 w-5 text-indigo-600" />
+                Plan de Acción
+              </h3>
+              <button onClick={() => setActionPlanModal(null)} className="text-gray-400 hover:text-gray-600 p-1">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <div className="p-4 overflow-y-auto space-y-4">
+              {actionPlanModal.action_plans?.length > 0 ? (
+                actionPlanModal.action_plans.map((plan, idx) => (
+                  <div key={idx} className="space-y-3">
+                    <div>
+                      <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Razón del no cumplimiento</p>
+                      <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-gray-700 whitespace-pre-wrap">
+                        {plan.reason_not_met || "No especificada"}
+                      </div>
+                    </div>
+                    <div>
+                      <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Plan de acción</p>
+                      <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-3 text-sm text-gray-700 whitespace-pre-wrap">
+                        {plan.action_plan}
+                      </div>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <p className="text-sm text-gray-500 text-center py-4">No hay información del plan de acción disponible</p>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
