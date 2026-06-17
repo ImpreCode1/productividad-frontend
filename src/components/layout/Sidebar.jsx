@@ -11,6 +11,7 @@ import {
   User,
   Mail,
   Settings,
+  Building2,
 } from "lucide-react";
 
 const getMenuSections = (roles = []) => {
@@ -20,6 +21,14 @@ const getMenuSections = (roles = []) => {
   const isLeaderAndEmployee = isLeader && isEmployee;
   
   const sections = [];
+
+  // Organización - visible para todos los roles
+  sections.push({
+    title: "Organización",
+    items: [
+      { path: "/position-groups", label: "Jerarquía", icon: Building2 },
+    ],
+  });
 
   // Dashboard section
   if (isAdmin) {

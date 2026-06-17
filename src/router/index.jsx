@@ -17,6 +17,7 @@ import ActionPlanPage from "../features/actionPlan/pages/ActionPlanPage";
 import EvidencePage from "../features/evidence/pages/EvidencePage";
 import NotificationsPage from "../features/admin/pages/NotificationsPage";
 import ApprovalConfigPage from "../features/admin/pages/ApprovalConfigPage";
+import PositionGroupsPage from "../features/positionGroups/pages/PositionGroupsPage";
 
 export default function AppRouter() {
   return (
@@ -89,6 +90,11 @@ export default function AppRouter() {
           <Route
             path="approval-config"
             element={<ApprovalConfigPage />}
+          />
+
+          <Route
+            path="position-groups"
+            element={<PositionGroupsPage />}
           />
         </Route>
 
