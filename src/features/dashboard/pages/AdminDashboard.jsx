@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { LayoutDashboard, Users, Target, CheckCircle, XCircle, Paperclip, ClipboardList, ChevronDown, ChevronRight, FileText, Briefcase, Check, AlertCircle, Building2, Download, X } from "lucide-react";
+import { LayoutDashboard, Users, Target, CheckCircle, XCircle, Paperclip, ClipboardList, ChevronDown, ChevronRight, FileText, Briefcase, Check, AlertCircle, Building2, Download, X, Search } from "lucide-react";
 import api from "../../../api/client";
 import { getAreas } from "../../../api/users.api";
 
@@ -20,6 +20,13 @@ export default function AdminDashboard() {
   const currentYear = new Date().getFullYear();
   const [year, setYear] = useState(currentYear);
   const [selectedArea, setSelectedArea] = useState("");
+  const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearch(search), 400);
+    return () => clearTimeout(timer);
+  }, [search]);
   const [expandedTeams, setExpandedTeams] = useState({});
   const [expandedUsers, setExpandedUsers] = useState({});
   const [expandedIndicators, setExpandedIndicators] = useState({});
@@ -64,10 +71,11 @@ export default function AdminDashboard() {
   });
 
   const { data: globalData, isLoading } = useQuery({
-    queryKey: ["dashboard", "global", year, selectedArea],
+    queryKey: ["dashboard", "global", year, selectedArea, debouncedSearch],
     queryFn: async () => {
       const params = new URLSearchParams({ year: year.toString() });
       if (selectedArea) params.append("area", selectedArea);
+      if (debouncedSearch.trim()) params.append("search", debouncedSearch.trim());
       const { data } = await api.get(`/dashboard/global?${params}`);
       return data;
     },
@@ -119,6 +127,17 @@ export default function AdminDashboard() {
                 <option key={area} value={area}>{area}</option>
               ))}
             </select>
+          </div>
+
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Buscar por nombre, cargo o líder..."
+              className="pl-9 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white min-w-[220px]"
+            />
           </div>
 
           <select
