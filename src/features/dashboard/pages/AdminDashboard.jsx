@@ -255,20 +255,32 @@ export default function AdminDashboard() {
         {globalData?.teams?.map((team) => (
           <div key={team.leader_name} className="bg-white rounded-lg shadow overflow-hidden">
             <div 
-              className="px-4 py-3 bg-gray-50 border-b border-gray-200 cursor-pointer hover:bg-gray-100 flex items-center justify-between"
+              className="px-4 py-3 bg-gray-50 border-b border-gray-200 cursor-pointer hover:bg-gray-100 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between"
               onClick={() => toggleTeam(team.leader_name)}
             >
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 min-w-0">
                 {expandedTeams[team.leader_name] ? (
-                  <ChevronDown className="h-5 w-5 text-gray-500" />
+                  <ChevronDown className="h-5 w-5 text-gray-500 shrink-0" />
                 ) : (
-                  <ChevronRight className="h-5 w-5 text-gray-500" />
+                  <ChevronRight className="h-5 w-5 text-gray-500 shrink-0" />
                 )}
-                <Users className="h-5 w-5 text-blue-600" />
-                <span className="font-semibold text-gray-900">{team.leader_name}</span>
-                <span className="text-sm text-gray-500">({team.members.length} miembros)</span>
+                <Users className="h-5 w-5 text-blue-600 shrink-0" />
+                <span className="font-semibold text-gray-900 truncate">{team.leader_name}</span>
+                <span className="text-sm text-gray-500 shrink-0">({team.members.length} miembros)</span>
               </div>
-              <div className="flex items-center gap-4 text-sm">
+              <div className="sm:hidden flex items-center gap-3 text-xs text-gray-500">
+                <span>Indic: <span className="font-medium text-gray-700">{team.total_indicators}</span></span>
+                <span>Cerr: <span className="font-medium text-gray-700">{team.total_closed}</span></span>
+                <span className={`px-1.5 py-0.5 rounded text-xs font-medium ${
+                  team.avg_score >= 80 ? "bg-green-100 text-green-800" :
+                  team.avg_score >= 50 ? "bg-yellow-100 text-yellow-800" :
+                  team.avg_score > 0 ? "bg-red-100 text-red-800" :
+                  "bg-gray-100 text-gray-600"
+                }`}>
+                  Score: {team.avg_score}%
+                </span>
+              </div>
+              <div className="hidden sm:flex items-center gap-4 text-sm">
                 <span className="text-gray-500">Indic: <span className="font-medium text-gray-700">{team.total_indicators}</span></span>
                 <span className="text-gray-500">Cerr: <span className="font-medium text-gray-700">{team.total_closed}</span></span>
                 <span className="text-gray-500">Planes: <span className="font-medium text-gray-700">{team.total_plans}</span></span>
