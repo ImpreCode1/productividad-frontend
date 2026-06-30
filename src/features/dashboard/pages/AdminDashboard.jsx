@@ -27,6 +27,11 @@ export default function AdminDashboard() {
     const timer = setTimeout(() => setDebouncedSearch(search), 400);
     return () => clearTimeout(timer);
   }, [search]);
+  const [quarter, setQuarter] = useState("");
+  const [selectedDireccion, setSelectedDireccion] = useState("");
+  const [selectedResponsable, setSelectedResponsable] = useState("");
+  const [cumplimiento, setCumplimiento] = useState("");
+  const [selectedMonth, setSelectedMonth] = useState(null);
   const [expandedTeams, setExpandedTeams] = useState({});
   const [expandedUsers, setExpandedUsers] = useState({});
   const [expandedIndicators, setExpandedIndicators] = useState({});
@@ -70,15 +75,39 @@ export default function AdminDashboard() {
     staleTime: 5 * 60 * 1000,
   });
 
-  const { data: globalData, isLoading } = useQuery({
-    queryKey: ["dashboard", "global", year, selectedArea, debouncedSearch],
+  const { data: direcciones } = useQuery({
+    queryKey: ["dashboard", "direcciones"],
+    queryFn: async () => {
+      const { data } = await api.get("/dashboard/filters/direcciones");
+      return data;
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const { data: responsables } = useQuery({
+    queryKey: ["dashboard", "responsables"],
+    queryFn: async () => {
+      const { data } = await api.get("/dashboard/filters/responsables");
+      return data;
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const { data: globalData, isLoading, isFetching } = useQuery({
+    queryKey: ["dashboard", "global", year, selectedArea, debouncedSearch, quarter, selectedDireccion, selectedResponsable, cumplimiento, selectedMonth],
     queryFn: async () => {
       const params = new URLSearchParams({ year: year.toString() });
       if (selectedArea) params.append("area", selectedArea);
       if (debouncedSearch.trim()) params.append("search", debouncedSearch.trim());
+      if (quarter) params.append("quarter", quarter);
+      if (selectedDireccion) params.append("direccion", selectedDireccion);
+      if (selectedResponsable) params.append("responsable", selectedResponsable);
+      if (cumplimiento) params.append("cumplimiento", cumplimiento);
+      if (selectedMonth) params.append("month", selectedMonth.toString());
       const { data } = await api.get(`/dashboard/global?${params}`);
       return data;
     },
+    placeholderData: (previousData) => previousData,
   });
 
   const toggleTeam = (teamName) => {
@@ -93,7 +122,7 @@ export default function AdminDashboard() {
     setExpandedIndicators(prev => ({ ...prev, [indicatorKey]: !prev[indicatorKey] }));
   };
 
-  if (isLoading) {
+  if (isLoading && !globalData) {
     return (
       <div className="flex justify-center py-12">
         <div className="text-gray-500">Cargando dashboard...</div>
@@ -130,6 +159,34 @@ export default function AdminDashboard() {
           </div>
 
           <div className="relative">
+            <Building2 className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <select
+              value={selectedDireccion}
+              onChange={(e) => setSelectedDireccion(e.target.value)}
+              className="pl-9 pr-8 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 appearance-none bg-white min-w-[200px]"
+            >
+              <option value="">Todas las Direcciones</option>
+              {direcciones?.map((d) => (
+                <option key={d} value={d}>{d}</option>
+              ))}
+            </select>
+          </div>
+
+          <div className="relative">
+            <Users className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <select
+              value={selectedResponsable}
+              onChange={(e) => setSelectedResponsable(e.target.value)}
+              className="pl-9 pr-8 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 appearance-none bg-white min-w-[200px]"
+            >
+              <option value="">Todos los Responsables</option>
+              {responsables?.map((r) => (
+                <option key={r} value={r}>{r}</option>
+              ))}
+            </select>
+          </div>
+
+          <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
             <input
               type="text"
@@ -139,6 +196,28 @@ export default function AdminDashboard() {
               className="pl-9 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white min-w-[220px]"
             />
           </div>
+
+          <select
+            value={quarter}
+            onChange={(e) => setQuarter(e.target.value)}
+            className="border border-gray-300 rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          >
+            <option value="">Trimestre</option>
+            <option value="1">Q1</option>
+            <option value="2">Q2</option>
+            <option value="3">Q3</option>
+            <option value="4">Q4</option>
+          </select>
+
+          <select
+            value={cumplimiento}
+            onChange={(e) => setCumplimiento(e.target.value)}
+            className="border border-gray-300 rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          >
+            <option value="">Cumplimiento</option>
+            <option value="cumplio">Cumplió</option>
+            <option value="no_cumplio">No cumplió</option>
+          </select>
 
           <select
             value={year}
@@ -158,6 +237,29 @@ export default function AdminDashboard() {
             <Download className="h-4 w-4" />
             {downloading ? "Descargando..." : "Descargar Reporte Excel"}
           </button>
+        </div>
+      </div>
+
+      {/* Month tabs */}
+      <div className="overflow-x-auto">
+        <div className="flex gap-1 min-w-max">
+          {monthsList.map((label, i) => {
+            const monthNum = i + 1;
+            const isActive = selectedMonth === monthNum;
+            return (
+              <button
+                key={monthNum}
+                onClick={() => setSelectedMonth(isActive ? null : monthNum)}
+                className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${
+                  isActive
+                    ? "bg-blue-600 text-white shadow-sm"
+                    : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                }`}
+              >
+                {label}
+              </button>
+            );
+          })}
         </div>
       </div>
 
@@ -251,7 +353,9 @@ export default function AdminDashboard() {
         </div>
       )} */}
 
-      <div className="space-y-4">
+      <div className={`space-y-4 transition-opacity duration-200 ${
+          isFetching && globalData ? "opacity-50" : "opacity-100"
+        }`}>
         {globalData?.teams?.map((team) => (
           <div key={team.leader_name} className="bg-white rounded-lg shadow overflow-hidden">
             <div 
