@@ -22,11 +22,6 @@ export default function AdminDashboard() {
   const [selectedArea, setSelectedArea] = useState("");
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
-
-  useEffect(() => {
-    const timer = setTimeout(() => setDebouncedSearch(search), 400);
-    return () => clearTimeout(timer);
-  }, [search]);
   const [quarter, setQuarter] = useState("");
   const [selectedDireccion, setSelectedDireccion] = useState("");
   const [selectedResponsable, setSelectedResponsable] = useState("");
@@ -37,6 +32,20 @@ export default function AdminDashboard() {
   const [expandedIndicators, setExpandedIndicators] = useState({});
   const [downloading, setDownloading] = useState(false);
   const [actionPlanModal, setActionPlanModal] = useState(null);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearch(search), 400);
+    return () => clearTimeout(timer);
+  }, [search]);
+
+  useEffect(() => {
+    setSelectedDireccion("");
+    setSelectedResponsable("");
+  }, [selectedArea]);
+
+  useEffect(() => {
+    setSelectedResponsable("");
+  }, [selectedDireccion]);
 
   const handleDownloadReport = async () => {
     setDownloading(true);
@@ -76,18 +85,23 @@ export default function AdminDashboard() {
   });
 
   const { data: direcciones } = useQuery({
-    queryKey: ["dashboard", "direcciones"],
+    queryKey: ["dashboard", "direcciones", selectedArea],
     queryFn: async () => {
-      const { data } = await api.get("/dashboard/filters/direcciones");
+      const params = new URLSearchParams();
+      if (selectedArea) params.append("area", selectedArea);
+      const { data } = await api.get(`/dashboard/filters/direcciones?${params}`);
       return data;
     },
     staleTime: 5 * 60 * 1000,
   });
 
   const { data: responsables } = useQuery({
-    queryKey: ["dashboard", "responsables"],
+    queryKey: ["dashboard", "responsables", selectedArea, selectedDireccion],
     queryFn: async () => {
-      const { data } = await api.get("/dashboard/filters/responsables");
+      const params = new URLSearchParams();
+      if (selectedArea) params.append("area", selectedArea);
+      if (selectedDireccion) params.append("direccion", selectedDireccion);
+      const { data } = await api.get(`/dashboard/filters/responsables?${params}`);
       return data;
     },
     staleTime: 5 * 60 * 1000,
@@ -132,38 +146,75 @@ export default function AdminDashboard() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-            <LayoutDashboard className="h-7 w-7" />
-            Dashboard General
-          </h1>
-          <p className="text-gray-500 mt-1">
-            Vista general de toda la organización
-          </p>
-        </div>
+      <div className="space-y-3">
 
-        <div className="flex items-center gap-3">
-          <div className="relative">
-            <Building2 className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-            <select
-              value={selectedArea}
-              onChange={(e) => setSelectedArea(e.target.value)}
-              className="pl-9 pr-8 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 appearance-none bg-white min-w-[200px]"
-            >
-              <option value="">Todas las Vicepresidencias</option>
-              {areas?.map((area) => (
-                <option key={area} value={area}>{area}</option>
-              ))}
-            </select>
+        {/* FILA 1 — Título + filtros principales */}
+        <div className="flex items-center justify-between flex-wrap gap-3">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+              <LayoutDashboard className="h-7 w-7" />
+              Dashboard General
+            </h1>
+            <p className="text-gray-500 mt-1">
+              Vista general de toda la organización
+            </p>
           </div>
 
+          <div className="flex items-center gap-3">
+            <div className="relative">
+              <Building2 className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <select
+                value={selectedArea}
+                onChange={(e) => setSelectedArea(e.target.value)}
+                className="pl-9 pr-8 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 appearance-none bg-white w-full sm:w-auto sm:min-w-[200px]"
+              >
+                <option value="">Todas las Vicepresidencias</option>
+                {areas?.map((area) => (
+                  <option key={area} value={area}>{area}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <input
+                type="text"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Buscar por nombre, cargo o líder..."
+                className="pl-9 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white w-full sm:w-auto sm:min-w-[220px]"
+              />
+            </div>
+
+            <select
+              value={year}
+              onChange={(e) => setYear(Number(e.target.value))}
+              className="border border-gray-300 rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            >
+              <option value={currentYear}>{currentYear}</option>
+              <option value={currentYear - 1}>{currentYear - 1}</option>
+              <option value={currentYear - 2}>{currentYear - 2}</option>
+            </select>
+
+            <button
+              onClick={handleDownloadReport}
+              disabled={downloading}
+              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              <Download className="h-4 w-4" />
+              {downloading ? "Descargando..." : "Descargar Reporte Excel"}
+            </button>
+          </div>
+        </div>
+
+        {/* FILA 2 — Filtros avanzados */}
+        <div className="flex items-center gap-2 flex-wrap">
           <div className="relative">
             <Building2 className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
             <select
               value={selectedDireccion}
               onChange={(e) => setSelectedDireccion(e.target.value)}
-              className="pl-9 pr-8 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 appearance-none bg-white min-w-[200px]"
+              className="pl-9 pr-8 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 appearance-none bg-white w-full sm:w-auto sm:min-w-[180px]"
             >
               <option value="">Todas las Direcciones</option>
               {direcciones?.map((d) => (
@@ -177,7 +228,7 @@ export default function AdminDashboard() {
             <select
               value={selectedResponsable}
               onChange={(e) => setSelectedResponsable(e.target.value)}
-              className="pl-9 pr-8 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 appearance-none bg-white min-w-[200px]"
+              className="pl-9 pr-8 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 appearance-none bg-white w-full sm:w-auto sm:min-w-[180px]"
             >
               <option value="">Todos los Responsables</option>
               {responsables?.map((r) => (
@@ -186,21 +237,10 @@ export default function AdminDashboard() {
             </select>
           </div>
 
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-            <input
-              type="text"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Buscar por nombre, cargo o líder..."
-              className="pl-9 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white min-w-[220px]"
-            />
-          </div>
-
           <select
             value={quarter}
             onChange={(e) => setQuarter(e.target.value)}
-            className="border border-gray-300 rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            className="border border-gray-300 rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 w-full sm:w-auto sm:min-w-[130px]"
           >
             <option value="">Trimestre</option>
             <option value="1">Q1</option>
@@ -212,55 +252,52 @@ export default function AdminDashboard() {
           <select
             value={cumplimiento}
             onChange={(e) => setCumplimiento(e.target.value)}
-            className="border border-gray-300 rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            className="border border-gray-300 rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 w-full sm:w-auto sm:min-w-[130px]"
           >
             <option value="">Cumplimiento</option>
             <option value="cumplio">Cumplió</option>
             <option value="no_cumplio">No cumplió</option>
           </select>
 
-          <select
-            value={year}
-            onChange={(e) => setYear(Number(e.target.value))}
-            className="border border-gray-300 rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-          >
-            <option value={currentYear}>{currentYear}</option>
-            <option value={currentYear - 1}>{currentYear - 1}</option>
-            <option value={currentYear - 2}>{currentYear - 2}</option>
-          </select>
-
-          <button
-            onClick={handleDownloadReport}
-            disabled={downloading}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-          >
-            <Download className="h-4 w-4" />
-            {downloading ? "Descargando..." : "Descargar Reporte Excel"}
-          </button>
+          {(selectedDireccion || selectedResponsable || quarter || cumplimiento || selectedMonth) && (
+            <button
+              onClick={() => {
+                setSelectedDireccion("");
+                setSelectedResponsable("");
+                setQuarter("");
+                setCumplimiento("");
+                setSelectedMonth(null);
+              }}
+              className="text-sm text-gray-500 hover:text-gray-700 underline w-full sm:w-auto text-center"
+            >
+              Limpiar filtros
+            </button>
+          )}
         </div>
-      </div>
 
-      {/* Month tabs */}
-      <div className="overflow-x-auto">
-        <div className="flex gap-1 min-w-max">
-          {monthsList.map((label, i) => {
-            const monthNum = i + 1;
-            const isActive = selectedMonth === monthNum;
-            return (
-              <button
-                key={monthNum}
-                onClick={() => setSelectedMonth(isActive ? null : monthNum)}
-                className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${
-                  isActive
-                    ? "bg-blue-600 text-white shadow-sm"
-                    : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-                }`}
-              >
-                {label}
-              </button>
-            );
-          })}
+        {/* FILA 3 — Tabs de mes */}
+        <div className="overflow-x-auto">
+          <div className="flex gap-1 min-w-max">
+            {monthsList.map((label, i) => {
+              const monthNum = i + 1;
+              const isActive = selectedMonth === monthNum;
+              return (
+                <button
+                  key={monthNum}
+                  onClick={() => setSelectedMonth(isActive ? null : monthNum)}
+                  className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${
+                    isActive
+                      ? "bg-blue-600 text-white shadow-sm"
+                      : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                  }`}
+                >
+                  {label}
+                </button>
+              );
+            })}
+          </div>
         </div>
+
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
