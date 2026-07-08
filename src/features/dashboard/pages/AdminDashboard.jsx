@@ -6,11 +6,11 @@ import { getAreas } from "../../../api/users.api";
 
 const monthsList = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
 
-const getMonthStatus = (monthData, targetValue) => {
+const getMonthStatus = (monthData) => {
   if (!monthData) return "not_assigned";
   if (monthData.achievement_percentage !== null && monthData.achievement_percentage !== undefined) {
     if (!monthData.is_closed) return "not_evaluated";
-    return monthData.achievement_percentage >= targetValue ? "met" : "not_met";
+    return monthData.target_met === true ? "met" : "not_met";
   }
   if (!monthData.is_closed) return "not_evaluated";
   return "not_assigned";
@@ -555,7 +555,7 @@ export default function AdminDashboard() {
                                         {Array.from({ length: 12 }, (_, i) => {
                                           const monthNum = i + 1;
                                           const monthData = indicator.months?.find(m => m.month === monthNum);
-                                          const status = getMonthStatus(monthData, targetValue);
+                                          const status = getMonthStatus(monthData);
                                           
                                           return (
                                             <div 
