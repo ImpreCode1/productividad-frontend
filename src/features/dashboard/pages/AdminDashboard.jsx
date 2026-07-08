@@ -24,6 +24,7 @@ export default function AdminDashboard() {
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [quarter, setQuarter] = useState("");
   const [selectedDireccion, setSelectedDireccion] = useState("");
+  const [selectedSubarea, setSelectedSubarea] = useState("");
   const [selectedResponsable, setSelectedResponsable] = useState("");
   const [cumplimiento, setCumplimiento] = useState("");
   const [selectedMonth, setSelectedMonth] = useState(null);
@@ -40,10 +41,12 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     setSelectedDireccion("");
+    setSelectedSubarea("");
     setSelectedResponsable("");
   }, [selectedArea]);
 
   useEffect(() => {
+    setSelectedSubarea("");
     setSelectedResponsable("");
   }, [selectedDireccion]);
 
@@ -107,14 +110,27 @@ export default function AdminDashboard() {
     staleTime: 5 * 60 * 1000,
   });
 
+  const { data: subareas } = useQuery({
+    queryKey: ["dashboard", "subareas", selectedArea, selectedDireccion],
+    queryFn: async () => {
+      const params = new URLSearchParams();
+      if (selectedArea) params.append("area", selectedArea);
+      if (selectedDireccion) params.append("direccion", selectedDireccion);
+      const { data } = await api.get(`/dashboard/filters/subareas?${params}`);
+      return data;
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+
   const { data: globalData, isLoading, isFetching } = useQuery({
-    queryKey: ["dashboard", "global", year, selectedArea, debouncedSearch, quarter, selectedDireccion, selectedResponsable, cumplimiento, selectedMonth],
+    queryKey: ["dashboard", "global", year, selectedArea, debouncedSearch, quarter, selectedDireccion, selectedSubarea, selectedResponsable, cumplimiento, selectedMonth],
     queryFn: async () => {
       const params = new URLSearchParams({ year: year.toString() });
       if (selectedArea) params.append("area", selectedArea);
       if (debouncedSearch.trim()) params.append("search", debouncedSearch.trim());
       if (quarter) params.append("quarter", quarter);
       if (selectedDireccion) params.append("direccion", selectedDireccion);
+      if (selectedSubarea) params.append("subarea", selectedSubarea);
       if (selectedResponsable) params.append("responsable", selectedResponsable);
       if (cumplimiento) params.append("cumplimiento", cumplimiento);
       if (selectedMonth) params.append("month", selectedMonth.toString());
@@ -224,6 +240,20 @@ export default function AdminDashboard() {
           </div>
 
           <div className="relative">
+            <Building2 className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <select
+              value={selectedSubarea}
+              onChange={(e) => setSelectedSubarea(e.target.value)}
+              className="pl-9 pr-8 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 appearance-none bg-white w-full sm:w-auto sm:min-w-[180px]"
+            >
+              <option value="">Todas las Áreas</option>
+              {subareas?.map((s) => (
+                <option key={s} value={s}>{s}</option>
+              ))}
+            </select>
+          </div>
+
+          <div className="relative">
             <Users className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
             <select
               value={selectedResponsable}
@@ -259,10 +289,11 @@ export default function AdminDashboard() {
             <option value="no_cumplio">No cumplió</option>
           </select>
 
-          {(selectedDireccion || selectedResponsable || quarter || cumplimiento || selectedMonth) && (
+          {(selectedDireccion || selectedSubarea || selectedResponsable || quarter || cumplimiento || selectedMonth) && (
             <button
               onClick={() => {
                 setSelectedDireccion("");
+                setSelectedSubarea("");
                 setSelectedResponsable("");
                 setQuarter("");
                 setCumplimiento("");
